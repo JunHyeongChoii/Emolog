@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../models/emotion_entry.dart';
 
 class EditEmotionScreen extends StatefulWidget {
-  // 수정할 기록을 받아옴
   final EmotionEntry entry;
 
   const EditEmotionScreen({super.key, required this.entry});
@@ -14,6 +13,7 @@ class EditEmotionScreen extends StatefulWidget {
 class _EditEmotionScreenState extends State<EditEmotionScreen> {
   late int _selectedScore;
   late TextEditingController _memoController;
+  late TextEditingController _diaryController;
 
   final List<Map<String, dynamic>> _emotions = [
     {'emoji': '😢', 'label': '최악', 'score': 1},
@@ -29,11 +29,16 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
     // 기존 기록 값으로 초기화
     _selectedScore = widget.entry.score;
     _memoController = TextEditingController(text: widget.entry.memo);
+    // 기존 기록에 diary 필드가 없을 수 있어서 예외 처리
+    _diaryController = TextEditingController(
+      text: widget.entry.diary.isEmpty ? '' : widget.entry.diary,
+    );
   }
 
   @override
   void dispose() {
     _memoController.dispose();
+    _diaryController.dispose();
     super.dispose();
   }
 
@@ -42,6 +47,7 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
     widget.entry.score = _selectedScore;
     widget.entry.emoji = _emotions[_selectedScore - 1]['emoji'];
     widget.entry.memo = _memoController.text;
+    widget.entry.diary = _diaryController.text;
     await widget.entry.save();
     if (mounted) Navigator.pop(context);
   }
@@ -57,7 +63,8 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
-      body: Padding(
+      // 키보드 올라올 때 스크롤 가능하도록
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,8 +103,7 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: isSelected
-                              ? Border.all(
-                                  color: const Color(0xFF534AB7), width: 2.5)
+                              ? Border.all(color: const Color(0xFF534AB7), width: 2.5)
                               : null,
                           color: isSelected
                               ? const Color(0xFFEEEDFE)
@@ -113,12 +119,8 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
                         e['label'],
                         style: TextStyle(
                           fontSize: 12,
-                          color: isSelected
-                              ? const Color(0xFF534AB7)
-                              : Colors.grey,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                          color: isSelected ? const Color(0xFF534AB7) : Colors.grey,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                     ],
@@ -127,11 +129,11 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
               }).toList(),
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 36),
 
-            // 메모 수정
+            // 한줄 메모
             const Text(
-              '한줄 메모 (선택)',
+              '한줄 메모',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
@@ -139,7 +141,7 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
               controller: _memoController,
               maxLength: 50,
               decoration: InputDecoration(
-                hintText: '오늘 하루 어땠나요?',
+                hintText: '오늘 하루 한 줄로 표현하면?',
                 hintStyle: const TextStyle(color: Colors.grey),
                 filled: true,
                 fillColor: const Color(0xFFF5F5F5),
@@ -150,9 +152,53 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
               ),
             ),
 
-            const Spacer(),
+            const Divider(height: 32),
 
-            // 저장 버튼
+            // 일기 본문
+            Row(
+              children: [
+                const Text(
+                  '일기',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE1F5EE),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'NEW',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF085041),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _diaryController,
+              maxLines: 8,
+              maxLength: 1000,
+              decoration: InputDecoration(
+                hintText: '오늘 하루를 자유롭게 기록해보세요.',
+                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                filled: true,
+                fillColor: const Color(0xFFF5F5F5),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // 수정 완료 버튼
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -174,6 +220,8 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
                 ),
               ),
             ),
+
+            const SizedBox(height: 24),
           ],
         ),
       ),

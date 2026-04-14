@@ -21,13 +21,14 @@ class EmotionEntryAdapter extends TypeAdapter<EmotionEntry> {
       ..score = fields[1] as int
       ..emoji = fields[2] as String
       ..memo = fields[3] as String
-      ..createdAt = fields[4] as String;
+      ..createdAt = fields[4] as String
+      ..diary = fields[5] as String;
   }
 
   @override
   void write(BinaryWriter writer, EmotionEntry obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.date)
       ..writeByte(1)
@@ -37,7 +38,9 @@ class EmotionEntryAdapter extends TypeAdapter<EmotionEntry> {
       ..writeByte(3)
       ..write(obj.memo)
       ..writeByte(4)
-      ..write(obj.createdAt);
+      ..write(obj.createdAt)
+      ..writeByte(5)
+      ..write(obj.diary);
   }
 
   @override

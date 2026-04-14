@@ -18,4 +18,7 @@ class EmotionEntry extends HiveObject {
 
   @HiveField(4)
   late String createdAt;
+
+  @HiveField(5)
+  late String diary;
 }

@@ -12,6 +12,7 @@ class AddEmotionScreen extends StatefulWidget {
 class _AddEmotionScreenState extends State<AddEmotionScreen> {
   int _selectedScore = 3;
   final TextEditingController _memoController = TextEditingController();
+  final TextEditingController _diaryController = TextEditingController();
 
   final List<Map<String, dynamic>> _emotions = [
     {'emoji': '😢', 'label': '최악', 'score': 1},
@@ -21,6 +22,14 @@ class _AddEmotionScreenState extends State<AddEmotionScreen> {
     {'emoji': '😄', 'label': '최고', 'score': 5},
   ];
 
+  @override
+  void dispose() {
+    _memoController.dispose();
+    _diaryController.dispose();
+    super.dispose();
+  }
+
+  // 저장
   void _save() async {
     final box = Hive.box<EmotionEntry>('emotions');
     final now = DateTime.now();
@@ -29,6 +38,7 @@ class _AddEmotionScreenState extends State<AddEmotionScreen> {
       ..score = _selectedScore
       ..emoji = _emotions[_selectedScore - 1]['emoji']
       ..memo = _memoController.text
+      ..diary = _diaryController.text
       ..createdAt = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
     await box.add(entry);
@@ -46,7 +56,8 @@ class _AddEmotionScreenState extends State<AddEmotionScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
-      body: Padding(
+      // 키보드 올라올 때 스크롤 가능하도록
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,9 +90,7 @@ class _AddEmotionScreenState extends State<AddEmotionScreen> {
                         ),
                         child: Text(
                           e['emoji'],
-                          style: TextStyle(
-                            fontSize: isSelected ? 40 : 32,
-                          ),
+                          style: TextStyle(fontSize: isSelected ? 40 : 32),
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -89,12 +98,8 @@ class _AddEmotionScreenState extends State<AddEmotionScreen> {
                         e['label'],
                         style: TextStyle(
                           fontSize: 12,
-                          color: isSelected
-                              ? const Color(0xFF534AB7)
-                              : Colors.grey,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                          color: isSelected ? const Color(0xFF534AB7) : Colors.grey,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                     ],
@@ -103,19 +108,24 @@ class _AddEmotionScreenState extends State<AddEmotionScreen> {
               }).toList(),
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 36),
 
-            // 메모 입력
+            // 한줄 메모
             const Text(
-              '한줄 메모 (선택)',
+              '한줄 메모',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              '선택 사항이에요',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _memoController,
               maxLength: 50,
               decoration: InputDecoration(
-                hintText: '오늘 하루 어땠나요?',
+                hintText: '오늘 하루 한 줄로 표현하면?',
                 hintStyle: const TextStyle(color: Colors.grey),
                 filled: true,
                 fillColor: const Color(0xFFF5F5F5),
@@ -126,7 +136,56 @@ class _AddEmotionScreenState extends State<AddEmotionScreen> {
               ),
             ),
 
-            const Spacer(),
+            const Divider(height: 32),
+
+            // 일기 본문
+            Row(
+              children: [
+                const Text(
+                  '일기',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE1F5EE),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'NEW',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF085041),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              '선택 사항이에요',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _diaryController,
+              maxLines: 8,
+              maxLength: 1000,
+              decoration: InputDecoration(
+                hintText: '오늘 하루를 자유롭게 기록해보세요.\n\n어떤 일이 있었나요?\n무슨 생각을 했나요?',
+                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                filled: true,
+                fillColor: const Color(0xFFF5F5F5),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
 
             // 저장 버튼
             SizedBox(
@@ -150,6 +209,8 @@ class _AddEmotionScreenState extends State<AddEmotionScreen> {
                 ),
               ),
             ),
+
+            const SizedBox(height: 24),
           ],
         ),
       ),
