@@ -3,20 +3,17 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/emotion_entry.dart';
 import 'add_emotion_screen.dart';
 import 'edit_emotion_screen.dart';
+import 'detail_emotion_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  // 삭제 확인 다이얼로그
   Future<void> _confirmDelete(BuildContext context, EmotionEntry entry) async {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          '기록 삭제',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text('기록 삭제', style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('이 감정 기록을 삭제할까요?\n삭제하면 되돌릴 수 없어요.'),
         actions: [
           TextButton(
@@ -25,10 +22,8 @@ class HomeScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              '삭제',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-            ),
+            child: const Text('삭제',
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -115,15 +110,24 @@ class HomeScreen extends StatelessWidget {
                   ),
 
                   // 감정 카드 목록
-                  ...dayEntries.map((entry) => _SwipeToDeleteCard(
+                  ...dayEntries.map((entry) => _SwipeCard(
                     entry: entry,
-                    onDelete: () => _confirmDelete(context, entry),
+                    // 탭 → 상세 화면 (읽기 전용)
                     onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => DetailEmotionScreen(entry: entry),
+                      ),
+                    ),
+                    // 오른쪽 스와이프 → 수정 화면
+                    onEdit: () => Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => EditEmotionScreen(entry: entry),
                       ),
                     ),
+                    // 왼쪽 스와이프 → 삭제
+                    onDelete: () => _confirmDelete(context, entry),
                   )),
 
                   const Divider(height: 24),
@@ -145,22 +149,24 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _SwipeToDeleteCard extends StatefulWidget {
+class _SwipeCard extends StatefulWidget {
   final EmotionEntry entry;
-  final VoidCallback onDelete;
   final VoidCallback onTap;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
-  const _SwipeToDeleteCard({
+  const _SwipeCard({
     required this.entry,
-    required this.onDelete,
     required this.onTap,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   @override
-  State<_SwipeToDeleteCard> createState() => _SwipeToDeleteCardState();
+  State<_SwipeCard> createState() => _SwipeCardState();
 }
 
-class _SwipeToDeleteCardState extends State<_SwipeToDeleteCard> {
+class _SwipeCardState extends State<_SwipeCard> {
   double _dragOffset = 0.0;
   static const double _maxOffset = 80.0;
 
@@ -170,17 +176,57 @@ class _SwipeToDeleteCardState extends State<_SwipeToDeleteCard> {
       onHorizontalDragUpdate: (details) {
         setState(() {
           _dragOffset -= details.delta.dx;
-          _dragOffset = _dragOffset.clamp(0.0, _maxOffset);
+          _dragOffset = _dragOffset.clamp(-_maxOffset, _maxOffset);
         });
       },
       onHorizontalDragEnd: (details) {
-        setState(() {
-          _dragOffset = _dragOffset > _maxOffset / 2 ? _maxOffset : 0.0;
-        });
+        if (_dragOffset > _maxOffset / 2) {
+          // 왼쪽으로 많이 밀면 → 삭제 버튼 노출
+          setState(() => _dragOffset = _maxOffset);
+        } else if (_dragOffset < -_maxOffset / 2) {
+          // 오른쪽으로 많이 밀면 → 수정 화면 이동
+          setState(() => _dragOffset = 0.0);
+          widget.onEdit();
+        } else {
+          setState(() => _dragOffset = 0.0);
+        }
       },
       child: Stack(
         children: [
-          // 빨간 삭제 버튼
+          // 왼쪽: 초록색 수정 버튼 (오른쪽 스와이프 시 노출)
+          Positioned.fill(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                width: _maxOffset,
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade400,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(14),
+                    bottomLeft: Radius.circular(14),
+                  ),
+                ),
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.edit_rounded, color: Colors.white, size: 24),
+                    SizedBox(height: 4),
+                    Text(
+                      '수정',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // 오른쪽: 빨간색 삭제 버튼 (왼쪽 스와이프 시 노출)
           Positioned.fill(
             child: Align(
               alignment: Alignment.centerRight,
@@ -236,18 +282,15 @@ class _SwipeToDeleteCardState extends State<_SwipeToDeleteCard> {
               child: Row(
                 children: [
                   // 감정 이모지
-                  Text(
-                    widget.entry.emoji,
-                    style: const TextStyle(fontSize: 32),
-                  ),
+                  Text(widget.entry.emoji,
+                      style: const TextStyle(fontSize: 32)),
                   const SizedBox(width: 14),
 
-                  // 메모 및 점수
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 감정 점수 닷
+                        // 점수 닷
                         Row(
                           children: List.generate(5, (i) => Container(
                             width: 8,
@@ -266,7 +309,7 @@ class _SwipeToDeleteCardState extends State<_SwipeToDeleteCard> {
                         // 한줄 메모
                         Text(
                           widget.entry.memo.isEmpty
-                              ? ''
+                              ? '메모 없음'
                               : widget.entry.memo,
                           style: TextStyle(
                             fontSize: 14,
@@ -283,7 +326,6 @@ class _SwipeToDeleteCardState extends State<_SwipeToDeleteCard> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // 일기 있을 때만 아이콘 표시
                       if (widget.entry.diary.isNotEmpty)
                         const Icon(
                           Icons.edit_note_rounded,
@@ -292,10 +334,7 @@ class _SwipeToDeleteCardState extends State<_SwipeToDeleteCard> {
                         )
                       else
                         const SizedBox(height: 16),
-
                       const SizedBox(height: 4),
-
-                      // 기록 시간
                       Text(
                         widget.entry.createdAt,
                         style: const TextStyle(
