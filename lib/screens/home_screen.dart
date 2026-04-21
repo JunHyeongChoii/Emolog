@@ -19,12 +19,10 @@ class HomeScreen extends StatelessWidget {
         ),
         content: const Text('이 감정 기록을 삭제할까요?\n삭제하면 되돌릴 수 없어요.'),
         actions: [
-          // 취소 버튼
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('취소', style: TextStyle(color: Colors.grey)),
           ),
-          // 삭제 버튼
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text(
@@ -35,8 +33,6 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
     );
-
-    // 확인 눌렀을 때만 삭제
     if (result == true) await entry.delete();
   }
 
@@ -51,20 +47,15 @@ class HomeScreen extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         actions: [
-          // 통계 아이콘 (나중에 연결 예정)
           IconButton(
             icon: const Icon(Icons.bar_chart_rounded),
             onPressed: () {},
           ),
         ],
       ),
-
-      // Hive 데이터 변경 시 자동으로 화면 갱신
       body: ValueListenableBuilder(
         valueListenable: Hive.box<EmotionEntry>('emotions').listenable(),
         builder: (context, box, _) {
-
-          // 기록 없을 때 안내 문구
           if (box.isEmpty) {
             return const Center(
               child: Text(
@@ -75,10 +66,7 @@ class HomeScreen extends StatelessWidget {
             );
           }
 
-          // 최신순 정렬
-          final entries = box.values.toList().reversed.toList();
-
-          // 날짜별 그룹화
+          final entries = box.values.toList();
           final Map<String, List<EmotionEntry>> grouped = {};
           for (var entry in entries) {
             grouped.putIfAbsent(entry.date, () => []).add(entry);
@@ -90,8 +78,6 @@ class HomeScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final date = grouped.keys.elementAt(index);
               final dayEntries = grouped[date]!;
-
-              // 날짜 파싱 및 요일 계산
               final parts = date.split('-');
               final dt = DateTime(
                 int.parse(parts[0]),
@@ -104,7 +90,6 @@ class HomeScreen extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   // 날짜 헤더
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
@@ -141,7 +126,6 @@ class HomeScreen extends StatelessWidget {
                     ),
                   )),
 
-                  // 날짜 구분선
                   const Divider(height: 24),
                 ],
               );
@@ -149,8 +133,6 @@ class HomeScreen extends StatelessWidget {
           );
         },
       ),
-
-      // + 버튼 → 감정 기록 화면으로 이동
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF534AB7),
         onPressed: () => Navigator.push(
@@ -163,7 +145,6 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// 스와이프해서 삭제 버튼 노출하는 카드 위젯
 class _SwipeToDeleteCard extends StatefulWidget {
   final EmotionEntry entry;
   final VoidCallback onDelete;
@@ -180,23 +161,18 @@ class _SwipeToDeleteCard extends StatefulWidget {
 }
 
 class _SwipeToDeleteCardState extends State<_SwipeToDeleteCard> {
-  // 카드가 얼마나 밀렸는지 (0.0 ~ 80.0)
   double _dragOffset = 0.0;
-
-  // 삭제 버튼 최대 너비 (카드의 1/4)
   static const double _maxOffset = 80.0;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      // 왼쪽으로 드래그할 때
       onHorizontalDragUpdate: (details) {
         setState(() {
           _dragOffset -= details.delta.dx;
           _dragOffset = _dragOffset.clamp(0.0, _maxOffset);
         });
       },
-      // 드래그 끝났을 때 절반 이상 밀면 최대치, 아니면 원래대로
       onHorizontalDragEnd: (details) {
         setState(() {
           _dragOffset = _dragOffset > _maxOffset / 2 ? _maxOffset : 0.0;
@@ -204,13 +180,11 @@ class _SwipeToDeleteCardState extends State<_SwipeToDeleteCard> {
       },
       child: Stack(
         children: [
-
-          // 뒤에 깔리는 빨간 삭제 버튼
+          // 빨간 삭제 버튼
           Positioned.fill(
             child: Align(
               alignment: Alignment.centerRight,
               child: GestureDetector(
-                // 빨간 버튼 탭 → 확인 다이얼로그
                 onTap: () {
                   setState(() => _dragOffset = 0.0);
                   widget.onDelete();
@@ -245,9 +219,8 @@ class _SwipeToDeleteCardState extends State<_SwipeToDeleteCard> {
             ),
           ),
 
-          // 앞에 보이는 감정 카드
+          // 감정 카드
           GestureDetector(
-            // 밀려있으면 탭 시 원래대로, 아니면 수정 화면으로 이동
             onTap: _dragOffset == 0
                 ? widget.onTap
                 : () => setState(() => _dragOffset = 0.0),
@@ -269,11 +242,12 @@ class _SwipeToDeleteCardState extends State<_SwipeToDeleteCard> {
                   ),
                   const SizedBox(width: 14),
 
+                  // 메모 및 점수
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 감정 점수 닷(dot) 표시
+                        // 감정 점수 닷
                         Row(
                           children: List.generate(5, (i) => Container(
                             width: 8,
@@ -289,10 +263,10 @@ class _SwipeToDeleteCardState extends State<_SwipeToDeleteCard> {
                         ),
                         const SizedBox(height: 4),
 
-                        // 메모 텍스트
+                        // 한줄 메모
                         Text(
                           widget.entry.memo.isEmpty
-                              ? '메모 없음'
+                              ? ''
                               : widget.entry.memo,
                           style: TextStyle(
                             fontSize: 14,
@@ -305,10 +279,31 @@ class _SwipeToDeleteCardState extends State<_SwipeToDeleteCard> {
                     ),
                   ),
 
-                  // 기록 시간
-                  Text(
-                    widget.entry.createdAt,
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  // 오른쪽: 일기 아이콘 + 시간
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // 일기 있을 때만 아이콘 표시
+                      if (widget.entry.diary.isNotEmpty)
+                        const Icon(
+                          Icons.edit_note_rounded,
+                          size: 16,
+                          color: Color(0xFF534AB7),
+                        )
+                      else
+                        const SizedBox(height: 16),
+
+                      const SizedBox(height: 4),
+
+                      // 기록 시간
+                      Text(
+                        widget.entry.createdAt,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
