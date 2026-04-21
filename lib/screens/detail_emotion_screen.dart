@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/emotion_entry.dart';
 import '../models/todo_entry.dart';
-import 'edit_emotion_screen.dart';
 
 class DetailEmotionScreen extends StatelessWidget {
   final EmotionEntry entry;
 
   const DetailEmotionScreen({super.key, required this.entry});
+
+  // 할일 완료 토글
+  void _toggleDone(TodoEntry todo) {
+    todo.isDone = !todo.isDone;
+    todo.save();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,11 +41,8 @@ class DetailEmotionScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  // 이모지
                   Text(entry.emoji, style: const TextStyle(fontSize: 56)),
                   const SizedBox(height: 12),
-
-                  // 점수 닷
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(5, (i) => Container(
@@ -56,8 +58,6 @@ class DetailEmotionScreen extends StatelessWidget {
                     )),
                   ),
                   const SizedBox(height: 8),
-
-                  // 점수 라벨
                   Text(
                     ['', '최악', '힘들어', '보통', '좋아', '최고'][entry.score],
                     style: const TextStyle(
@@ -67,8 +67,6 @@ class DetailEmotionScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-
-                  // 기록 시간
                   Text(
                     '${entry.createdAt} 기록',
                     style: const TextStyle(
@@ -138,7 +136,7 @@ class DetailEmotionScreen extends StatelessWidget {
               const SizedBox(height: 20),
             ],
 
-            // 오늘 할 일 목록
+            // 오늘 할 일 (체크 가능)
             const Text(
               '오늘 할 일',
               style: TextStyle(
@@ -209,56 +207,60 @@ class DetailEmotionScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
 
-                    // 할일 목록 (읽기 전용)
-                    ...todos.map((todo) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8F8FC),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          // 체크 표시 (읽기 전용)
-                          Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: todo.isDone
-                                  ? const Color(0xFF534AB7)
-                                  : Colors.transparent,
-                              border: Border.all(
+                    // 할일 목록 (체크 가능!)
+                    ...todos.map((todo) => GestureDetector(
+                      onTap: () => _toggleDone(todo),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8F8FC),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            // 체크 버튼 (탭 가능)
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
                                 color: todo.isDone
                                     ? const Color(0xFF534AB7)
-                                    : Colors.grey.shade400,
-                                width: 2,
+                                    : Colors.transparent,
+                                border: Border.all(
+                                  color: todo.isDone
+                                      ? const Color(0xFF534AB7)
+                                      : Colors.grey.shade400,
+                                  width: 2,
+                                ),
+                              ),
+                              child: todo.isDone
+                                  ? const Icon(Icons.check,
+                                      size: 14, color: Colors.white)
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                todo.title,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: todo.isDone
+                                      ? Colors.grey
+                                      : Colors.black87,
+                                  decoration: todo.isDone
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                ),
                               ),
                             ),
-                            child: todo.isDone
-                                ? const Icon(Icons.check,
-                                    size: 14, color: Colors.white)
-                                : null,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              todo.title,
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: todo.isDone
-                                    ? Colors.grey
-                                    : Colors.black87,
-                                decoration: todo.isDone
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                              ),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     )),
                   ],
