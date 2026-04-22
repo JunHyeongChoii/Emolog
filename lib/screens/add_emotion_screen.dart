@@ -56,7 +56,6 @@ class _AddEmotionScreenState extends State<AddEmotionScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
-      // 키보드 올라올 때 스크롤 가능하도록
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -82,7 +81,8 @@ class _AddEmotionScreenState extends State<AddEmotionScreen> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: isSelected
-                              ? Border.all(color: const Color(0xFF534AB7), width: 2.5)
+                              ? Border.all(
+                                  color: const Color(0xFF534AB7), width: 2.5)
                               : null,
                           color: isSelected
                               ? const Color(0xFFEEEDFE)
@@ -98,8 +98,12 @@ class _AddEmotionScreenState extends State<AddEmotionScreen> {
                         e['label'],
                         style: TextStyle(
                           fontSize: 12,
-                          color: isSelected ? const Color(0xFF534AB7) : Colors.grey,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected
+                              ? const Color(0xFF534AB7)
+                              : Colors.grey,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                     ],
@@ -138,30 +142,10 @@ class _AddEmotionScreenState extends State<AddEmotionScreen> {
 
             const Divider(height: 32),
 
-            // 일기 본문
-            Row(
-              children: [
-                const Text(
-                  '일기',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE1F5EE),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    'NEW',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF085041),
-                    ),
-                  ),
-                ),
-              ],
+            // 일기
+            const Text(
+              '일기',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             const Text(

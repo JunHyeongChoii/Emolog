@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/emotion_entry.dart';
+import '../models/todo_entry.dart';
 import 'add_emotion_screen.dart';
 import 'edit_emotion_screen.dart';
 import 'detail_emotion_screen.dart';
@@ -50,88 +51,102 @@ class HomeScreen extends StatelessWidget {
       ),
       body: ValueListenableBuilder(
         valueListenable: Hive.box<EmotionEntry>('emotions').listenable(),
-        builder: (context, box, _) {
-          if (box.isEmpty) {
-            return const Center(
-              child: Text(
-                '아직 기록이 없어요\n아래 + 버튼을 눌러 기록해보세요!',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            );
-          }
+        builder: (context, emotionBox, _) {
+          return ValueListenableBuilder(
+            valueListenable: Hive.box<TodoEntry>('todos').listenable(),
+            builder: (context, todoBox, _) {
 
-          final entries = box.values.toList();
-          final Map<String, List<EmotionEntry>> grouped = {};
-          for (var entry in entries) {
-            grouped.putIfAbsent(entry.date, () => []).add(entry);
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: grouped.length,
-            itemBuilder: (context, index) {
-              final date = grouped.keys.elementAt(index);
-              final dayEntries = grouped[date]!;
-              final parts = date.split('-');
-              final dt = DateTime(
-                int.parse(parts[0]),
-                int.parse(parts[1]),
-                int.parse(parts[2]),
-              );
-              final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
-              final weekday = weekdays[dt.weekday - 1];
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 날짜 헤더
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      children: [
-                        Text(
-                          '${parts[1]}/${parts[2]}',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          weekday,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
+              if (emotionBox.isEmpty) {
+                return const Center(
+                  child: Text(
+                    '아직 기록이 없어요\n아래 + 버튼을 눌러 기록해보세요!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
+                );
+              }
 
-                  // 감정 카드 목록
-                  ...dayEntries.map((entry) => _SwipeCard(
-                    entry: entry,
-                    // 탭 → 상세 화면 (읽기 전용)
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DetailEmotionScreen(entry: entry),
-                      ),
-                    ),
-                    // 오른쪽 스와이프 → 수정 화면
-                    onEdit: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EditEmotionScreen(entry: entry),
-                      ),
-                    ),
-                    // 왼쪽 스와이프 → 삭제
-                    onDelete: () => _confirmDelete(context, entry),
-                  )),
+              final entries = emotionBox.values.toList();
+              final Map<String, List<EmotionEntry>> grouped = {};
+              for (var entry in entries) {
+                grouped.putIfAbsent(entry.date, () => []).add(entry);
+              }
 
-                  const Divider(height: 24),
-                ],
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: grouped.length,
+                itemBuilder: (context, index) {
+                  final date = grouped.keys.elementAt(index);
+                  final dayEntries = grouped[date]!;
+                  final parts = date.split('-');
+                  final dt = DateTime(
+                    int.parse(parts[0]),
+                    int.parse(parts[1]),
+                    int.parse(parts[2]),
+                  );
+                  final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
+                  final weekday = weekdays[dt.weekday - 1];
+
+                  // 해당 날짜 할일 완료율 계산
+                  final todos = todoBox.values
+                      .where((t) => t.date == date)
+                      .toList();
+                  final totalTodos = todos.length;
+                  final doneTodos = todos.where((t) => t.isDone).length;
+                  final todoProgress = totalTodos == 0
+                      ? -1.0
+                      : doneTodos / totalTodos;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 날짜 헤더
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            Text(
+                              '${parts[1]}/${parts[2]}',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              weekday,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // 감정 카드 목록
+                      ...dayEntries.map((entry) => _SwipeCard(
+                        entry: entry,
+                        todoProgress: todoProgress,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => DetailEmotionScreen(entry: entry),
+                          ),
+                        ),
+                        onEdit: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EditEmotionScreen(entry: entry),
+                          ),
+                        ),
+                        onDelete: () => _confirmDelete(context, entry),
+                      )),
+
+                      const Divider(height: 24),
+                    ],
+                  );
+                },
               );
             },
           );
@@ -151,12 +166,14 @@ class HomeScreen extends StatelessWidget {
 
 class _SwipeCard extends StatefulWidget {
   final EmotionEntry entry;
+  final double todoProgress; // -1: 할일없음, 0.0~1.0: 완료율
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _SwipeCard({
     required this.entry,
+    required this.todoProgress,
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
@@ -170,6 +187,73 @@ class _SwipeCardState extends State<_SwipeCard> {
   double _dragOffset = 0.0;
   static const double _maxOffset = 80.0;
 
+  // 할일 완료율 뱃지 위젯
+  Widget _todoBadge() {
+    if (widget.todoProgress < 0) {
+      // 할일 없음
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          '할일 없음',
+          style: TextStyle(fontSize: 10, color: Colors.grey),
+        ),
+      );
+    } else if (widget.todoProgress >= 1.0) {
+      // 100% 완료
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEEEDFE),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.check, size: 10, color: Color(0xFF534AB7)),
+            SizedBox(width: 2),
+            Text(
+              '100%',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF534AB7),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // 진행 중
+      final percent = (widget.todoProgress * 100).toInt();
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE1F5EE),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.check, size: 10, color: Color(0xFF0F6E56)),
+            const SizedBox(width: 2),
+            Text(
+              '$percent%',
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0F6E56),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -181,10 +265,8 @@ class _SwipeCardState extends State<_SwipeCard> {
       },
       onHorizontalDragEnd: (details) {
         if (_dragOffset > _maxOffset / 2) {
-          // 왼쪽으로 많이 밀면 → 삭제 버튼 노출
           setState(() => _dragOffset = _maxOffset);
         } else if (_dragOffset < -_maxOffset / 2) {
-          // 오른쪽으로 많이 밀면 → 수정 화면 이동
           setState(() => _dragOffset = 0.0);
           widget.onEdit();
         } else {
@@ -193,7 +275,7 @@ class _SwipeCardState extends State<_SwipeCard> {
       },
       child: Stack(
         children: [
-          // 왼쪽: 초록색 수정 버튼 (오른쪽 스와이프 시 노출)
+          // 왼쪽: 초록 수정 버튼
           Positioned.fill(
             child: Align(
               alignment: Alignment.centerLeft,
@@ -212,21 +294,18 @@ class _SwipeCardState extends State<_SwipeCard> {
                   children: [
                     Icon(Icons.edit_rounded, color: Colors.white, size: 24),
                     SizedBox(height: 4),
-                    Text(
-                      '수정',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text('수정',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
             ),
           ),
 
-          // 오른쪽: 빨간색 삭제 버튼 (왼쪽 스와이프 시 노출)
+          // 오른쪽: 빨간 삭제 버튼
           Positioned.fill(
             child: Align(
               alignment: Alignment.centerRight,
@@ -250,14 +329,11 @@ class _SwipeCardState extends State<_SwipeCard> {
                     children: [
                       Icon(Icons.delete, color: Colors.white, size: 24),
                       SizedBox(height: 4),
-                      Text(
-                        '삭제',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      Text('삭제',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -322,18 +398,25 @@ class _SwipeCardState extends State<_SwipeCard> {
                     ),
                   ),
 
-                  // 오른쪽: 일기 아이콘 + 시간
+                  // 오른쪽: 아이콘들 + 시간
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      if (widget.entry.diary.isNotEmpty)
-                        const Icon(
-                          Icons.edit_note_rounded,
-                          size: 16,
-                          color: Color(0xFF534AB7),
-                        )
-                      else
-                        const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          // 일기 아이콘
+                          if (widget.entry.diary.isNotEmpty) ...[
+                            const Icon(
+                              Icons.edit_note_rounded,
+                              size: 16,
+                              color: Color(0xFF534AB7),
+                            ),
+                            const SizedBox(width: 4),
+                          ],
+                          // 할일 완료율 뱃지
+                          _todoBadge(),
+                        ],
+                      ),
                       const SizedBox(height: 4),
                       Text(
                         widget.entry.createdAt,
