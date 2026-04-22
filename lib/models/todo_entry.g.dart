@@ -20,13 +20,16 @@ class TodoEntryAdapter extends TypeAdapter<TodoEntry> {
       ..title = fields[0] as String
       ..isDone = fields[1] as bool
       ..date = fields[2] as String
-      ..createdAt = fields[3] as String;
+      ..createdAt = fields[3] as String
+      ..repeatType = fields[4] as String
+      ..repeatDays = (fields[5] as List).cast<int>()
+      ..repeatDay = fields[6] as int;
   }
 
   @override
   void write(BinaryWriter writer, TodoEntry obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.title)
       ..writeByte(1)
@@ -34,7 +37,13 @@ class TodoEntryAdapter extends TypeAdapter<TodoEntry> {
       ..writeByte(2)
       ..write(obj.date)
       ..writeByte(3)
-      ..write(obj.createdAt);
+      ..write(obj.createdAt)
+      ..writeByte(4)
+      ..write(obj.repeatType)
+      ..writeByte(5)
+      ..write(obj.repeatDays)
+      ..writeByte(6)
+      ..write(obj.repeatDay);
   }
 
   @override

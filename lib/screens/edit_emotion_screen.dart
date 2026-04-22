@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/emotion_entry.dart';
 import '../models/todo_entry.dart';
+import 'add_todo_screen.dart';
 
 class EditEmotionScreen extends StatefulWidget {
   final EmotionEntry entry;
@@ -16,8 +17,6 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
   late int _selectedScore;
   late TextEditingController _memoController;
   late TextEditingController _diaryController;
-  final TextEditingController _todoController = TextEditingController();
-  bool _showTodoInput = false;
 
   final List<Map<String, dynamic>> _emotions = [
     {'emoji': '😢', 'label': '최악', 'score': 1},
@@ -39,7 +38,6 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
   void dispose() {
     _memoController.dispose();
     _diaryController.dispose();
-    _todoController.dispose();
     super.dispose();
   }
 
@@ -51,21 +49,6 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
     widget.entry.diary = _diaryController.text;
     await widget.entry.save();
     if (mounted) Navigator.pop(context);
-  }
-
-  // 할일 추가
-  void _addTodo() {
-    if (_todoController.text.trim().isEmpty) return;
-    final box = Hive.box<TodoEntry>('todos');
-    final now = DateTime.now();
-    final todo = TodoEntry()
-      ..title = _todoController.text.trim()
-      ..isDone = false
-      ..date = widget.entry.date
-      ..createdAt = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-    box.add(todo);
-    _todoController.clear();
-    setState(() => _showTodoInput = false);
   }
 
   // 할일 완료 토글
@@ -80,7 +63,8 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('할 일 삭제', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('할 일 삭제',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('이 할 일을 삭제할까요?'),
         actions: [
           TextButton(
@@ -90,12 +74,24 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('삭제',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                style: TextStyle(
+                    color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
     if (result == true) await todo.delete();
+  }
+
+  // 반복 뱃지 텍스트
+  String _repeatLabel(TodoEntry todo) {
+    if (todo.repeatType == 'weekly') {
+      final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
+      return todo.repeatDays.map((d) => weekdays[d - 1]).join('·');
+    } else if (todo.repeatType == 'monthly') {
+      return '매월 ${todo.repeatDay}일';
+    }
+    return '오늘만';
   }
 
   @override
@@ -149,7 +145,8 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: isSelected
-                              ? Border.all(color: const Color(0xFF534AB7), width: 2.5)
+                              ? Border.all(
+                                  color: const Color(0xFF534AB7), width: 2.5)
                               : null,
                           color: isSelected
                               ? const Color(0xFFEEEDFE)
@@ -165,8 +162,12 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
                         e['label'],
                         style: TextStyle(
                           fontSize: 12,
-                          color: isSelected ? const Color(0xFF534AB7) : Colors.grey,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected
+                              ? const Color(0xFF534AB7)
+                              : Colors.grey,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                     ],
@@ -232,9 +233,15 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
                   '할 일',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                // + 버튼
+                // + 버튼 → AddTodoScreen으로 이동
                 GestureDetector(
-                  onTap: () => setState(() => _showTodoInput = !_showTodoInput),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          AddTodoScreen(date: widget.entry.date),
+                    ),
+                  ),
                   child: Container(
                     width: 28,
                     height: 28,
@@ -242,67 +249,13 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
                       shape: BoxShape.circle,
                       color: Color(0xFF534AB7),
                     ),
-                    child: Icon(
-                      _showTodoInput ? Icons.close : Icons.add,
-                      color: Colors.white,
-                      size: 18,
-                    ),
+                    child: const Icon(Icons.add,
+                        color: Colors.white, size: 18),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-
-            // 할일 입력창 (+ 눌렀을 때 나타남)
-            if (_showTodoInput) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _todoController,
-                      autofocus: true,
-                      decoration: InputDecoration(
-                        hintText: '할 일 입력...',
-                        hintStyle: const TextStyle(color: Colors.grey),
-                        filled: true,
-                        fillColor: const Color(0xFFF5F5F5),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                      ),
-                      onSubmitted: (_) => _addTodo(),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: _addTodo,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF534AB7),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                    child: const Text(
-                      '추가',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-            ],
 
             // 할일 목록
             ValueListenableBuilder(
@@ -328,7 +281,6 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
                   );
                 }
 
-                // 완료율
                 final done = todos.where((t) => t.isDone).length;
                 final progress = done / todos.length;
 
@@ -337,18 +289,15 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '$done/${todos.length}개 완료',
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                        Text(
-                          '${(progress * 100).toInt()}%',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF534AB7),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        Text('$done/${todos.length}개 완료',
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.grey)),
+                        Text('${(progress * 100).toInt()}%',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF534AB7),
+                              fontWeight: FontWeight.bold,
+                            )),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -363,81 +312,104 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // 할일 카드 (왼쪽 - 버튼, 체크 가능)
+                    // 할일 카드
                     ...todos.map((todo) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8F8FC),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          // − 삭제 버튼
-                          GestureDetector(
-                            onTap: () => _confirmDeleteTodo(todo),
-                            child: Container(
-                              width: 22,
-                              height: 22,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.red.shade50,
-                              ),
-                              child: Icon(
-                                Icons.remove,
-                                size: 14,
-                                color: Colors.red.shade400,
-                              ),
-                            ),
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8F8FC),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const SizedBox(width: 10),
-
-                          // 체크 버튼
-                          GestureDetector(
-                            onTap: () => _toggleDone(todo),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              width: 22,
-                              height: 22,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: todo.isDone
-                                    ? const Color(0xFF534AB7)
-                                    : Colors.transparent,
-                                border: Border.all(
-                                  color: todo.isDone
-                                      ? const Color(0xFF534AB7)
-                                      : Colors.grey.shade400,
-                                  width: 2,
+                          child: Row(
+                            children: [
+                              // − 삭제 버튼
+                              GestureDetector(
+                                onTap: () => _confirmDeleteTodo(todo),
+                                child: Container(
+                                  width: 22,
+                                  height: 22,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.red.shade50,
+                                  ),
+                                  child: Icon(Icons.remove,
+                                      size: 14,
+                                      color: Colors.red.shade400),
                                 ),
                               ),
-                              child: todo.isDone
-                                  ? const Icon(Icons.check,
-                                      size: 13, color: Colors.white)
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
+                              const SizedBox(width: 10),
 
-                          // 할일 텍스트
-                          Expanded(
-                            child: Text(
-                              todo.title,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: todo.isDone ? Colors.grey : Colors.black87,
-                                decoration: todo.isDone
-                                    ? TextDecoration.lineThrough
-                                    : null,
+                              // 체크 버튼
+                              GestureDetector(
+                                onTap: () => _toggleDone(todo),
+                                child: AnimatedContainer(
+                                  duration:
+                                      const Duration(milliseconds: 200),
+                                  width: 22,
+                                  height: 22,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: todo.isDone
+                                        ? const Color(0xFF534AB7)
+                                        : Colors.transparent,
+                                    border: Border.all(
+                                      color: todo.isDone
+                                          ? const Color(0xFF534AB7)
+                                          : Colors.grey.shade400,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: todo.isDone
+                                      ? const Icon(Icons.check,
+                                          size: 13, color: Colors.white)
+                                      : null,
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 10),
+
+                              // 할일 텍스트
+                              Expanded(
+                                child: Text(
+                                  todo.title,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: todo.isDone
+                                        ? Colors.grey
+                                        : Colors.black87,
+                                    decoration: todo.isDone
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(width: 8),
+
+                              // 반복 뱃지
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 7, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: todo.repeatType == 'once'
+                                      ? const Color(0xFFE1F5EE)
+                                      : const Color(0xFFEEEDFE),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  _repeatLabel(todo),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                    color: todo.repeatType == 'once'
+                                        ? const Color(0xFF085041)
+                                        : const Color(0xFF534AB7),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    )),
+                        )),
                   ],
                 );
               },
