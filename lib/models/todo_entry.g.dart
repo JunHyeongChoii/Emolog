@@ -16,14 +16,15 @@ class TodoEntryAdapter extends TypeAdapter<TodoEntry> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return TodoEntry()
+    return TodoEntry(
+      repeatType: fields[4] as String,
+      repeatDays: (fields[5] as List).cast<int>(),
+      repeatDay: fields[6] as int,
+    )
       ..title = fields[0] as String
       ..isDone = fields[1] as bool
       ..date = fields[2] as String
-      ..createdAt = fields[3] as String
-      ..repeatType = fields[4] as String
-      ..repeatDays = (fields[5] as List).cast<int>()
-      ..repeatDay = fields[6] as int;
+      ..createdAt = fields[3] as String;
   }
 
   @override

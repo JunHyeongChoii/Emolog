@@ -23,13 +23,24 @@ class TodoScreen extends StatelessWidget {
     todo.save();
   }
 
+  // 오늘 포함 미래 항목만 삭제, 과거는 유지
   Future<void> _confirmDelete(BuildContext context, TodoEntry todo) async {
+    final bool isRepeat =
+        todo.repeatType == 'weekly' || todo.repeatType == 'monthly';
+
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('할 일 삭제', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text('이 할 일을 삭제할까요?'),
+        title: const Text(
+          '할 일 삭제',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          isRepeat
+              ? '오늘 포함 미래 반복 항목을 모두 삭제할까요?\n(과거 기록은 유지돼요)'
+              : '이 할 일을 삭제할까요?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -37,23 +48,43 @@ class TodoScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('삭제',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: const Text(
+              '삭제',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
     );
-    if (result == true) await todo.delete();
+
+    if (result == true) {
+      if (!isRepeat) {
+        // 오늘만 → 단순 삭제
+        await todo.delete();
+      } else {
+        // 반복 항목 → 오늘 포함 미래 항목만 삭제
+        final box = Hive.box<TodoEntry>('todos');
+        final today = _today;
+        final toDelete = box.values
+            .where(
+              (t) =>
+                  t.title == todo.title &&
+                  t.repeatType == todo.repeatType &&
+                  t.date.compareTo(today) >= 0,
+            )
+            .toList();
+        for (final t in toDelete) {
+          await t.delete();
+        }
+      }
+    }
   }
 
   // 반복 뱃지 텍스트
   String _repeatLabel(TodoEntry todo) {
     if (todo.repeatType == 'weekly') {
       final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
-      final days = todo.repeatDays
-          .map((d) => weekdays[d - 1])
-          .join('·');
-      return days;
+      return todo.repeatDays.map((d) => weekdays[d - 1]).join('·');
     } else if (todo.repeatType == 'monthly') {
       return '매월 ${todo.repeatDay}일';
     }
@@ -72,36 +103,45 @@ class TodoScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 36, height: 4,
+              width: 36,
+              height: 4,
               decoration: BoxDecoration(
                 color: Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 16),
-            const Text('오늘 감정 기록',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Text(
+              '오늘 감정 기록',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 16),
             Text(entry.emoji, style: const TextStyle(fontSize: 48)),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(5, (i) => Container(
-                width: 10, height: 10,
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: i < entry.score
-                      ? const Color(0xFF534AB7)
-                      : Colors.grey.shade300,
+              children: List.generate(
+                5,
+                (i) => Container(
+                  width: 10,
+                  height: 10,
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: i < entry.score
+                        ? const Color(0xFF534AB7)
+                        : Colors.grey.shade300,
+                  ),
                 ),
-              )),
+              ),
             ),
             const SizedBox(height: 12),
             if (entry.memo.isNotEmpty)
-              Text(entry.memo,
-                  style: const TextStyle(fontSize: 15, color: Colors.black87),
-                  textAlign: TextAlign.center),
+              Text(
+                entry.memo,
+                style: const TextStyle(fontSize: 15, color: Colors.black87),
+                textAlign: TextAlign.center,
+              ),
             if (entry.diary.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(
@@ -111,14 +151,21 @@ class TodoScreen extends StatelessWidget {
                   color: const Color(0xFFF8F8FC),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(entry.diary,
-                    style: const TextStyle(
-                        fontSize: 13, color: Colors.black87, height: 1.6)),
+                child: Text(
+                  entry.diary,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black87,
+                    height: 1.6,
+                  ),
+                ),
               ),
             ],
             const SizedBox(height: 8),
-            Text('${entry.createdAt} 기록',
-                style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            Text(
+              '${entry.createdAt} 기록',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
           ],
         ),
       ),
@@ -136,15 +183,14 @@ class TodoScreen extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         actions: [
-          // + 버튼 → 할 일 추가 화면으로 이동
           IconButton(
-            icon: const Icon(Icons.add_circle_outline_rounded,
-                color: Color(0xFF534AB7)),
+            icon: const Icon(
+              Icons.add_circle_outline_rounded,
+              color: Color(0xFF534AB7),
+            ),
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => AddTodoScreen(date: _today),
-              ),
+              MaterialPageRoute(builder: (_) => AddTodoScreen(date: _today)),
             ),
           ),
         ],
@@ -155,7 +201,6 @@ class TodoScreen extends StatelessWidget {
           return ValueListenableBuilder(
             valueListenable: Hive.box<EmotionEntry>('emotions').listenable(),
             builder: (context, emotionBox, _) {
-
               final todos = todoBox.values
                   .where((t) => t.date == _today)
                   .toList();
@@ -163,8 +208,9 @@ class TodoScreen extends StatelessWidget {
               final todayEmotions = emotionBox.values
                   .where((e) => e.date == _today)
                   .toList();
-              final latestEmotion =
-                  todayEmotions.isNotEmpty ? todayEmotions.last : null;
+              final latestEmotion = todayEmotions.isNotEmpty
+                  ? todayEmotions.last
+                  : null;
 
               final total = todos.length;
               final done = todos.where((t) => t.isDone).length;
@@ -176,8 +222,6 @@ class TodoScreen extends StatelessWidget {
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                       children: [
-
-                        // 날짜
                         Text(
                           _todayLabel,
                           style: const TextStyle(
@@ -189,19 +233,21 @@ class TodoScreen extends StatelessWidget {
                         const SizedBox(height: 16),
 
                         // 오늘 감정 섹션
-                        const Text('오늘 감정',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey,
-                              letterSpacing: 0.5,
-                            )),
+                        const Text(
+                          '오늘 감정',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
                         const SizedBox(height: 8),
 
                         latestEmotion != null
                             ? GestureDetector(
-                                onTap: () => _showEmotionDetail(
-                                    context, latestEmotion),
+                                onTap: () =>
+                                    _showEmotionDetail(context, latestEmotion),
                                 child: Container(
                                   padding: const EdgeInsets.all(14),
                                   decoration: BoxDecoration(
@@ -210,8 +256,10 @@ class TodoScreen extends StatelessWidget {
                                   ),
                                   child: Row(
                                     children: [
-                                      Text(latestEmotion.emoji,
-                                          style: const TextStyle(fontSize: 30)),
+                                      Text(
+                                        latestEmotion.emoji,
+                                        style: const TextStyle(fontSize: 30),
+                                      ),
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Column(
@@ -220,18 +268,26 @@ class TodoScreen extends StatelessWidget {
                                           children: [
                                             Row(
                                               children: List.generate(
-                                                  5,
-                                                  (i) => Container(
-                                                        width: 7, height: 7,
-                                                        margin: const EdgeInsets
-                                                            .only(right: 3),
-                                                        decoration: BoxDecoration(
-                                                          shape: BoxShape.circle,
-                                                          color: i < latestEmotion.score
-                                                              ? const Color(0xFF534AB7)
-                                                              : const Color(0xFFAFA9EC),
-                                                        ),
-                                                      )),
+                                                5,
+                                                (i) => Container(
+                                                  width: 7,
+                                                  height: 7,
+                                                  margin: const EdgeInsets.only(
+                                                    right: 3,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color:
+                                                        i < latestEmotion.score
+                                                        ? const Color(
+                                                            0xFF534AB7,
+                                                          )
+                                                        : const Color(
+                                                            0xFFAFA9EC,
+                                                          ),
+                                                  ),
+                                                ),
+                                              ),
                                             ),
                                             const SizedBox(height: 3),
                                             Text(
@@ -240,21 +296,29 @@ class TodoScreen extends StatelessWidget {
                                                   : latestEmotion.memo,
                                               style: TextStyle(
                                                 fontSize: 13,
-                                                color: latestEmotion.memo.isEmpty
-                                                    ? const Color(0xFF534AB7).withValues(alpha: 0.6)
+                                                color:
+                                                    latestEmotion.memo.isEmpty
+                                                    ? const Color(
+                                                        0xFF534AB7,
+                                                      ).withValues(alpha: 0.6)
                                                     : const Color(0xFF3C3489),
                                               ),
                                             ),
                                             const SizedBox(height: 2),
-                                            Text('${latestEmotion.createdAt} 기록',
-                                                style: const TextStyle(
-                                                    fontSize: 10,
-                                                    color: Color(0xFF534AB7))),
+                                            Text(
+                                              '${latestEmotion.createdAt} 기록',
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                color: Color(0xFF534AB7),
+                                              ),
+                                            ),
                                           ],
                                         ),
                                       ),
-                                      const Icon(Icons.chevron_right_rounded,
-                                          color: Color(0xFF534AB7)),
+                                      const Icon(
+                                        Icons.chevron_right_rounded,
+                                        color: Color(0xFF534AB7),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -264,12 +328,17 @@ class TodoScreen extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF8F8FC),
                                   borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: Colors.grey.shade200),
+                                  border: Border.all(
+                                    color: Colors.grey.shade200,
+                                  ),
                                 ),
                                 child: const Center(
                                   child: Text(
                                     '아직 오늘 감정을 기록하지 않았어요',
-                                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -277,28 +346,36 @@ class TodoScreen extends StatelessWidget {
                         const SizedBox(height: 20),
 
                         // 할 일 섹션
-                        const Text('할 일',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey,
-                              letterSpacing: 0.5,
-                            )),
+                        const Text(
+                          '할 일',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
                         const SizedBox(height: 8),
 
                         if (total > 0) ...[
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('$done개 완료',
-                                  style: const TextStyle(
-                                      fontSize: 12, color: Colors.grey)),
-                              Text('${(progress * 100).toInt()}%',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF534AB7),
-                                    fontWeight: FontWeight.bold,
-                                  )),
+                              Text(
+                                '$done개 완료',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              Text(
+                                '${(progress * 100).toInt()}%',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF534AB7),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 6),
@@ -320,108 +397,125 @@ class TodoScreen extends StatelessWidget {
                               padding: EdgeInsets.symmetric(vertical: 20),
                               child: Text(
                                 '오늘 할 일을 추가해보세요!',
-                                style: TextStyle(fontSize: 14, color: Colors.grey),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ),
                           )
                         else
-                          ...todos.map((todo) => Dismissible(
-                                key: Key(todo.key.toString()),
-                                direction: DismissDirection.endToStart,
-                                background: Container(
-                                  margin: const EdgeInsets.only(bottom: 8),
-                                  padding: const EdgeInsets.only(right: 20),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.shade400,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  alignment: Alignment.centerRight,
-                                  child: const Icon(Icons.delete,
-                                      color: Colors.white),
+                          ...todos.map(
+                            (todo) => Dismissible(
+                              key: Key(todo.key.toString()),
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.only(right: 20),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade400,
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                confirmDismiss: (_) async {
-                                  await _confirmDelete(context, todo);
-                                  return false;
-                                },
-                                child: Container(
-                                  margin: const EdgeInsets.only(bottom: 8),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF8F8FC),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      // 체크 버튼
-                                      GestureDetector(
-                                        onTap: () => _toggleDone(todo),
-                                        child: AnimatedContainer(
-                                          duration: const Duration(milliseconds: 200),
-                                          width: 24, height: 24,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
+                                alignment: Alignment.centerRight,
+                                child: const Icon(
+                                  Icons.delete,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              confirmDismiss: (_) async {
+                                await _confirmDelete(context, todo);
+                                return false;
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF8F8FC),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    // 체크 버튼
+                                    GestureDetector(
+                                      onTap: () => _toggleDone(todo),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 200,
+                                        ),
+                                        width: 24,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: todo.isDone
+                                              ? const Color(0xFF534AB7)
+                                              : Colors.transparent,
+                                          border: Border.all(
                                             color: todo.isDone
                                                 ? const Color(0xFF534AB7)
-                                                : Colors.transparent,
-                                            border: Border.all(
-                                              color: todo.isDone
-                                                  ? const Color(0xFF534AB7)
-                                                  : Colors.grey.shade400,
-                                              width: 2,
-                                            ),
+                                                : Colors.grey.shade400,
+                                            width: 2,
                                           ),
-                                          child: todo.isDone
-                                              ? const Icon(Icons.check,
-                                                  size: 14, color: Colors.white)
+                                        ),
+                                        child: todo.isDone
+                                            ? const Icon(
+                                                Icons.check,
+                                                size: 14,
+                                                color: Colors.white,
+                                              )
+                                            : null,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+
+                                    // 할일 텍스트
+                                    Expanded(
+                                      child: Text(
+                                        todo.title,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          color: todo.isDone
+                                              ? Colors.grey
+                                              : Colors.black87,
+                                          decoration: todo.isDone
+                                              ? TextDecoration.lineThrough
                                               : null,
                                         ),
                                       ),
-                                      const SizedBox(width: 12),
+                                    ),
 
-                                      // 할일 텍스트
-                                      Expanded(
-                                        child: Text(
-                                          todo.title,
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            color: todo.isDone
-                                                ? Colors.grey
-                                                : Colors.black87,
-                                            decoration: todo.isDone
-                                                ? TextDecoration.lineThrough
-                                                : null,
-                                          ),
-                                        ),
+                                    const SizedBox(width: 8),
+
+                                    // 반복 뱃지
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 7,
+                                        vertical: 3,
                                       ),
-
-                                      const SizedBox(width: 8),
-
-                                      // 반복 뱃지
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 7, vertical: 3),
-                                        decoration: BoxDecoration(
+                                      decoration: BoxDecoration(
+                                        color: todo.repeatType == 'once'
+                                            ? const Color(0xFFE1F5EE)
+                                            : const Color(0xFFEEEDFE),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        _repeatLabel(todo),
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w500,
                                           color: todo.repeatType == 'once'
-                                              ? const Color(0xFFE1F5EE)
-                                              : const Color(0xFFEEEDFE),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          _repeatLabel(todo),
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w500,
-                                            color: todo.repeatType == 'once'
-                                                ? const Color(0xFF085041)
-                                                : const Color(0xFF534AB7),
-                                          ),
+                                              ? const Color(0xFF085041)
+                                              : const Color(0xFF534AB7),
                                         ),
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              )),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),

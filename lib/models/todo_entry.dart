@@ -5,23 +5,30 @@ part 'todo_entry.g.dart';
 @HiveType(typeId: 1)
 class TodoEntry extends HiveObject {
   @HiveField(0)
-  late String title;        // 할일 내용
+  late String title;
 
   @HiveField(1)
-  late bool isDone;         // 완료 여부
+  late bool isDone;
 
   @HiveField(2)
-  late String date;         // 날짜 "2026-04-21"
+  late String date;
 
   @HiveField(3)
-  late String createdAt;    // 생성 시각
+  late String createdAt;
 
   @HiveField(4)
-  late String repeatType;   // 'once' / 'weekly' / 'monthly'
+  String repeatType;
 
   @HiveField(5)
-  late List<int> repeatDays; // 매주: [1,3,5] (월=1, 화=2 ... 일=7)
+  List<int> repeatDays;
 
   @HiveField(6)
-  late int repeatDay;       // 매월: 1~31
+  int repeatDay;
+
+  // 기본값 설정 — 기존 데이터에 필드가 없어도 오류 안 나게
+  TodoEntry({
+    this.repeatType = 'once',
+    this.repeatDays = const [],
+    this.repeatDay = 0,
+  });
 }
