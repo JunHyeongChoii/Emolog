@@ -5,6 +5,7 @@ import 'models/todo_entry.dart';
 import 'models/ledger_entry.dart';
 import 'screens/home_screen.dart';
 import 'screens/todo_screen.dart';
+import 'screens/ledger_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,9 +14,9 @@ void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(EmotionEntryAdapter());
   Hive.registerAdapter(TodoEntryAdapter());
+  Hive.registerAdapter(LedgerEntryAdapter());
   await Hive.openBox<EmotionEntry>('emotions');
   await Hive.openBox<TodoEntry>('todos');
-  Hive.registerAdapter(LedgerEntryAdapter());
   await Hive.openBox<LedgerEntry>('ledger');
 
   // 앱 실행 시 빠진 날짜 자동 생성
@@ -30,20 +31,15 @@ Future<void> _fillMissingDates() async {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
 
-  // 오늘 날짜 문자열
   String dateToStr(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-  // 이미 기록된 날짜 목록
   final existingDates = box.values.map((e) => e.date).toSet();
 
-  // 마지막 기록일 찾기
   DateTime startDate;
   if (existingDates.isEmpty) {
-    // 기록이 하나도 없으면 오늘만 생성
     startDate = today;
   } else {
-    // 가장 최근 기록일 다음날부터 시작
     final sortedDates = existingDates.toList()..sort();
     final lastDateStr = sortedDates.last;
     final parts = lastDateStr.split('-');
@@ -55,24 +51,20 @@ Future<void> _fillMissingDates() async {
     startDate = lastDate.add(const Duration(days: 1));
   }
 
-  // 시작일부터 오늘까지 빠진 날짜 채우기
   DateTime current = startDate;
   while (!current.isAfter(today)) {
     final dateStr = dateToStr(current);
-
-    // 해당 날짜 기록이 없으면 빈 항목 생성
     if (!existingDates.contains(dateStr)) {
       final entry = EmotionEntry()
         ..date = dateStr
         ..score = 0
-        ..emoji = '😶'
+        ..emoji = '💭'
         ..memo = ''
         ..diary = ''
         ..isEmpty = true
         ..createdAt = '00:00';
       await box.add(entry);
     }
-
     current = current.add(const Duration(days: 1));
   }
 }
@@ -104,7 +96,11 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [const HomeScreen(), const TodoScreen()];
+  final List<Widget> _screens = [
+    const HomeScreen(),
+    const TodoScreen(),
+    const LedgerScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -122,6 +118,10 @@ class _MainScreenState extends State<MainScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.check_circle_outline_rounded),
             label: '할 일',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet_rounded),
+            label: '가계부',
           ),
         ],
       ),
