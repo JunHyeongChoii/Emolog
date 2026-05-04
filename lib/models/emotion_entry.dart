@@ -21,4 +21,10 @@ class EmotionEntry extends HiveObject {
 
   @HiveField(5)
   late String diary;
+
+  @HiveField(6)
+  bool isEmpty;
+
+  // 기본값 설정
+  EmotionEntry({this.isEmpty = false});
 }

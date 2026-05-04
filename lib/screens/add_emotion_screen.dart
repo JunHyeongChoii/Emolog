@@ -15,11 +15,51 @@ class _AddEmotionScreenState extends State<AddEmotionScreen> {
   final TextEditingController _diaryController = TextEditingController();
 
   final List<Map<String, dynamic>> _emotions = [
-    {'emoji': '😢', 'label': '최악', 'score': 1},
-    {'emoji': '😔', 'label': '힘들어', 'score': 2},
-    {'emoji': '😐', 'label': '보통', 'score': 3},
-    {'emoji': '😊', 'label': '좋아', 'score': 4},
-    {'emoji': '😄', 'label': '최고', 'score': 5},
+    {
+      'emoji': '😢',
+      'label': '최악',
+      'score': 1,
+      'title': '분노, 극심한 스트레스, 불안',
+      'desc': '지금 마음이 너무 폭발할 것 같나요?',
+      'color': Color(0xFFFFEBEB),
+      'textColor': Color(0xFFA32D2D),
+    },
+    {
+      'emoji': '😔',
+      'label': '힘들어',
+      'score': 2,
+      'title': '우울, 무기력, 슬픔',
+      'desc': '할 일 달성률이 급락하기 쉬운 구간이에요',
+      'color': Color(0xFFEEEDFE),
+      'textColor': Color(0xFF3C3489),
+    },
+    {
+      'emoji': '😐',
+      'label': '보통',
+      'score': 3,
+      'title': '평범함, 차분함, 무던함',
+      'desc': '가장 객관적인 판단이 가능한 상태예요',
+      'color': Color(0xFFF1EFE8),
+      'textColor': Color(0xFF5F5E5A),
+    },
+    {
+      'emoji': '😊',
+      'label': '좋아',
+      'score': 4,
+      'title': '기쁨, 뿌듯함, 감사',
+      'desc': '성취감이 높고 지출이 안정적인 구간이에요',
+      'color': Color(0xFFE1F5EE),
+      'textColor': Color(0xFF085041),
+    },
+    {
+      'emoji': '😄',
+      'label': '최고',
+      'score': 5,
+      'title': '설렘, 열정, 자신감',
+      'desc': '에너지가 넘쳐서 할 일을 초과 달성하기 좋은 구간이에요',
+      'color': Color(0xFFEAF3DE),
+      'textColor': Color(0xFF27500A),
+    },
   ];
 
   @override
@@ -29,24 +69,27 @@ class _AddEmotionScreenState extends State<AddEmotionScreen> {
     super.dispose();
   }
 
-  // 저장
   void _save() async {
     final box = Hive.box<EmotionEntry>('emotions');
     final now = DateTime.now();
     final entry = EmotionEntry()
-      ..date = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}'
+      ..date =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}'
       ..score = _selectedScore
       ..emoji = _emotions[_selectedScore - 1]['emoji']
       ..memo = _memoController.text
       ..diary = _diaryController.text
-      ..createdAt = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-
+      ..isEmpty = false
+      ..createdAt =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
     await box.add(entry);
     if (mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentEmotion = _emotions[_selectedScore - 1];
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -76,13 +119,16 @@ class _AddEmotionScreenState extends State<AddEmotionScreen> {
                   onTap: () => setState(() => _selectedScore = e['score']),
                   child: Column(
                     children: [
-                      Container(
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: isSelected
                               ? Border.all(
-                                  color: const Color(0xFF534AB7), width: 2.5)
+                                  color: const Color(0xFF534AB7),
+                                  width: 2.5,
+                                )
                               : null,
                           color: isSelected
                               ? const Color(0xFFEEEDFE)
@@ -112,7 +158,47 @@ class _AddEmotionScreenState extends State<AddEmotionScreen> {
               }).toList(),
             ),
 
-            const SizedBox(height: 36),
+            const SizedBox(height: 20),
+
+            // 동적 감정 설명 카드
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              child: Container(
+                key: ValueKey(_selectedScore),
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: currentEmotion['color'],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      currentEmotion['title'],
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: currentEmotion['textColor'],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      currentEmotion['desc'],
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: currentEmotion['textColor'],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 28),
 
             // 한줄 메모
             const Text(
