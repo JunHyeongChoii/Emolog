@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/ledger_entry.dart';
 import 'add_ledger_screen.dart';
 import 'budget_screen.dart';
+import 'edit_ledger_screen.dart';
 
 class LedgerScreen extends StatefulWidget {
   const LedgerScreen({super.key});
@@ -12,7 +13,6 @@ class LedgerScreen extends StatefulWidget {
 }
 
 class _LedgerScreenState extends State<LedgerScreen> {
-  // 현재 조회 중인 연월
   late int _year;
   late int _month;
 
@@ -24,7 +24,6 @@ class _LedgerScreenState extends State<LedgerScreen> {
     _month = now.month;
   }
 
-  // 이전 달
   void _prevMonth() {
     setState(() {
       if (_month == 1) {
@@ -36,7 +35,6 @@ class _LedgerScreenState extends State<LedgerScreen> {
     });
   }
 
-  // 다음 달
   void _nextMonth() {
     setState(() {
       if (_month == 12) {
@@ -48,10 +46,8 @@ class _LedgerScreenState extends State<LedgerScreen> {
     });
   }
 
-  // 해당 연월 날짜 문자열 prefix
   String get _monthPrefix => '$_year-${_month.toString().padLeft(2, '0')}';
 
-  // 금액 포맷
   String _formatAmount(int amount) {
     final abs = amount.abs();
     if (abs >= 10000) {
@@ -102,7 +98,6 @@ class _LedgerScreenState extends State<LedgerScreen> {
           ],
         ),
         actions: [
-          // 예산 설정 버튼
           IconButton(
             icon: const Icon(Icons.tune_rounded),
             onPressed: () => Navigator.push(
@@ -110,7 +105,6 @@ class _LedgerScreenState extends State<LedgerScreen> {
               MaterialPageRoute(builder: (_) => const BudgetScreen()),
             ),
           ),
-          // 내역 추가 버튼
           IconButton(
             icon: const Icon(
               Icons.add_circle_outline_rounded,
@@ -126,12 +120,10 @@ class _LedgerScreenState extends State<LedgerScreen> {
       body: ValueListenableBuilder(
         valueListenable: Hive.box<LedgerEntry>('ledger').listenable(),
         builder: (context, box, _) {
-          // 해당 월 내역 필터링
           final entries =
               box.values.where((e) => e.date.startsWith(_monthPrefix)).toList()
                 ..sort((a, b) => b.date.compareTo(a.date));
 
-          // 수입/지출 합계
           final totalIncome = entries
               .where((e) => e.type == 'income')
               .fold(0, (sum, e) => sum + e.amount);
@@ -140,7 +132,6 @@ class _LedgerScreenState extends State<LedgerScreen> {
               .fold(0, (sum, e) => sum + e.amount);
           final balance = totalIncome - totalExpense;
 
-          // 날짜별 그룹화
           final Map<String, List<LedgerEntry>> grouped = {};
           for (var entry in entries) {
             grouped.putIfAbsent(entry.date, () => []).add(entry);
@@ -156,37 +147,33 @@ class _LedgerScreenState extends State<LedgerScreen> {
                   color: const Color(0xFFEEEDFE),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Column(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _summaryItem(
-                          '수입',
-                          '+${_formatAmount(totalIncome)}',
-                          const Color(0xFF0F6E56),
-                        ),
-                        Container(
-                          width: 0.5,
-                          height: 40,
-                          color: const Color(0xFFAFA9EC),
-                        ),
-                        _summaryItem(
-                          '지출',
-                          '-${_formatAmount(totalExpense)}',
-                          const Color(0xFFA32D2D),
-                        ),
-                        Container(
-                          width: 0.5,
-                          height: 40,
-                          color: const Color(0xFFAFA9EC),
-                        ),
-                        _summaryItem(
-                          '잔액',
-                          _formatAmount(balance),
-                          const Color(0xFF534AB7),
-                        ),
-                      ],
+                    _summaryItem(
+                      '수입',
+                      '+${_formatAmount(totalIncome)}',
+                      const Color(0xFF0F6E56),
+                    ),
+                    Container(
+                      width: 0.5,
+                      height: 40,
+                      color: const Color(0xFFAFA9EC),
+                    ),
+                    _summaryItem(
+                      '지출',
+                      '-${_formatAmount(totalExpense)}',
+                      const Color(0xFFA32D2D),
+                    ),
+                    Container(
+                      width: 0.5,
+                      height: 40,
+                      color: const Color(0xFFAFA9EC),
+                    ),
+                    _summaryItem(
+                      '잔액',
+                      _formatAmount(balance),
+                      const Color(0xFF534AB7),
                     ),
                   ],
                 ),
@@ -217,7 +204,6 @@ class _LedgerScreenState extends State<LedgerScreen> {
                           final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
                           final weekday = weekdays[dt.weekday - 1];
 
-                          // 해당 날 수입/지출 합계
                           final dayIncome = dayEntries
                               .where((e) => e.type == 'income')
                               .fold(0, (sum, e) => sum + e.amount);
@@ -253,10 +239,7 @@ class _LedgerScreenState extends State<LedgerScreen> {
                                         ),
                                       ),
                                     if (dayIncome > 0 && dayExpense > 0)
-                                      const Text(
-                                        '  ',
-                                        style: TextStyle(fontSize: 12),
-                                      ),
+                                      const SizedBox(width: 8),
                                     if (dayExpense > 0)
                                       Text(
                                         '-${_formatAmountFull(dayExpense)}',
@@ -270,138 +253,144 @@ class _LedgerScreenState extends State<LedgerScreen> {
                                 ),
                               ),
 
-                              // 내역 카드
+                              // 내역 카드 (탭 → 수정, 스와이프 → 삭제)
                               ...dayEntries.map(
-                                (entry) => Dismissible(
-                                  key: Key(entry.key.toString()),
-                                  direction: DismissDirection.endToStart,
-                                  background: Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    padding: const EdgeInsets.only(right: 20),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red.shade400,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    alignment: Alignment.centerRight,
-                                    child: const Icon(
-                                      Icons.delete,
-                                      color: Colors.white,
+                                (entry) => GestureDetector(
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          EditLedgerScreen(entry: entry),
                                     ),
                                   ),
-                                  confirmDismiss: (_) async {
-                                    final result = await showDialog<bool>(
-                                      context: context,
-                                      builder: (ctx) => AlertDialog(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            16,
+                                  child: Dismissible(
+                                    key: Key(entry.key.toString()),
+                                    direction: DismissDirection.endToStart,
+                                    background: Container(
+                                      margin: const EdgeInsets.only(bottom: 8),
+                                      padding: const EdgeInsets.only(right: 20),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.shade400,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      alignment: Alignment.centerRight,
+                                      child: const Icon(
+                                        Icons.delete,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    confirmDismiss: (_) async {
+                                      final result = await showDialog<bool>(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
                                           ),
-                                        ),
-                                        title: const Text(
-                                          '내역 삭제',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
+                                          title: const Text(
+                                            '내역 삭제',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
+                                          content: const Text('이 내역을 삭제할까요?'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx, false),
+                                              child: const Text(
+                                                '취소',
+                                                style: TextStyle(
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx, true),
+                                              child: const Text(
+                                                '삭제',
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        content: const Text('이 내역을 삭제할까요?'),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(ctx, false),
-                                            child: const Text(
-                                              '취소',
-                                              style: TextStyle(
-                                                color: Colors.grey,
+                                      );
+                                      if (result == true) {
+                                        await entry.delete();
+                                      }
+                                      return false;
+                                    },
+                                    child: Container(
+                                      margin: const EdgeInsets.only(bottom: 8),
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF8F8FC),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 36,
+                                            height: 36,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: entry.type == 'income'
+                                                  ? const Color(0xFFE1F5EE)
+                                                  : const Color(0xFFFCEBEB),
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                entry.categoryEmoji,
+                                                style: const TextStyle(
+                                                  fontSize: 18,
+                                                ),
                                               ),
                                             ),
                                           ),
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(ctx, true),
-                                            child: const Text(
-                                              '삭제',
-                                              style: TextStyle(
-                                                color: Colors.red,
-                                                fontWeight: FontWeight.bold,
-                                              ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  entry.memo.isEmpty
+                                                      ? entry.category
+                                                      : entry.memo,
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    color: Colors.black87,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  entry.category,
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color: Colors.grey,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Text(
+                                            entry.type == 'income'
+                                                ? '+${_formatAmountFull(entry.amount)}'
+                                                : '-${_formatAmountFull(entry.amount)}',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: entry.type == 'income'
+                                                  ? const Color(0xFF0F6E56)
+                                                  : const Color(0xFFA32D2D),
                                             ),
                                           ),
                                         ],
                                       ),
-                                    );
-                                    if (result == true) await entry.delete();
-                                    return false;
-                                  },
-                                  child: Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF8F8FC),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        // 카테고리 아이콘
-                                        Container(
-                                          width: 36,
-                                          height: 36,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: entry.type == 'income'
-                                                ? const Color(0xFFE1F5EE)
-                                                : const Color(0xFFFCEBEB),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              entry.categoryEmoji,
-                                              style: const TextStyle(
-                                                fontSize: 18,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-
-                                        // 내역 정보
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                entry.memo.isEmpty
-                                                    ? entry.category
-                                                    : entry.memo,
-                                                style: const TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                              Text(
-                                                entry.category,
-                                                style: const TextStyle(
-                                                  fontSize: 11,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-
-                                        // 금액
-                                        Text(
-                                          entry.type == 'income'
-                                              ? '+${_formatAmountFull(entry.amount)}'
-                                              : '-${_formatAmountFull(entry.amount)}',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                            color: entry.type == 'income'
-                                                ? const Color(0xFF0F6E56)
-                                                : const Color(0xFFA32D2D),
-                                          ),
-                                        ),
-                                      ],
                                     ),
                                   ),
                                 ),
