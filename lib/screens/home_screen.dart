@@ -14,7 +14,10 @@ class HomeScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('기록 삭제', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          '기록 삭제',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: const Text('이 감정 기록을 삭제할까요?\n삭제하면 되돌릴 수 없어요.'),
         actions: [
           TextButton(
@@ -23,8 +26,10 @@ class HomeScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('삭제',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: const Text(
+              '삭제',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -55,7 +60,6 @@ class HomeScreen extends StatelessWidget {
           return ValueListenableBuilder(
             valueListenable: Hive.box<TodoEntry>('todos').listenable(),
             builder: (context, todoBox, _) {
-
               if (emotionBox.isEmpty) {
                 return const Center(
                   child: Text(
@@ -125,23 +129,25 @@ class HomeScreen extends StatelessWidget {
                       ),
 
                       // 감정 카드 목록
-                      ...dayEntries.map((entry) => _SwipeCard(
-                        entry: entry,
-                        todoProgress: todoProgress,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => DetailEmotionScreen(entry: entry),
+                      ...dayEntries.map(
+                        (entry) => _SwipeCard(
+                          entry: entry,
+                          todoProgress: todoProgress,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DetailEmotionScreen(entry: entry),
+                            ),
                           ),
-                        ),
-                        onEdit: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => EditEmotionScreen(entry: entry),
+                          onEdit: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditEmotionScreen(entry: entry),
+                            ),
                           ),
+                          onDelete: () => _confirmDelete(context, entry),
                         ),
-                        onDelete: () => _confirmDelete(context, entry),
-                      )),
+                      ),
 
                       const Divider(height: 24),
                     ],
@@ -166,7 +172,7 @@ class HomeScreen extends StatelessWidget {
 
 class _SwipeCard extends StatefulWidget {
   final EmotionEntry entry;
-  final double todoProgress; // -1: 할일없음, 0.0~1.0: 완료율
+  final double todoProgress;
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -187,10 +193,9 @@ class _SwipeCardState extends State<_SwipeCard> {
   double _dragOffset = 0.0;
   static const double _maxOffset = 80.0;
 
-  // 할일 완료율 뱃지 위젯
+  // 할일 완료율 뱃지
   Widget _todoBadge() {
     if (widget.todoProgress < 0) {
-      // 할일 없음
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
         decoration: BoxDecoration(
@@ -203,7 +208,6 @@ class _SwipeCardState extends State<_SwipeCard> {
         ),
       );
     } else if (widget.todoProgress >= 1.0) {
-      // 100% 완료
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
         decoration: BoxDecoration(
@@ -227,7 +231,6 @@ class _SwipeCardState extends State<_SwipeCard> {
         ),
       );
     } else {
-      // 진행 중
       final percent = (widget.todoProgress * 100).toInt();
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
@@ -294,11 +297,14 @@ class _SwipeCardState extends State<_SwipeCard> {
                   children: [
                     Icon(Icons.edit_rounded, color: Colors.white, size: 24),
                     SizedBox(height: 4),
-                    Text('수정',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold)),
+                    Text(
+                      '수정',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -329,11 +335,14 @@ class _SwipeCardState extends State<_SwipeCard> {
                     children: [
                       Icon(Icons.delete, color: Colors.white, size: 24),
                       SizedBox(height: 4),
-                      Text('삭제',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold)),
+                      Text(
+                        '삭제',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -352,83 +361,143 @@ class _SwipeCardState extends State<_SwipeCard> {
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8F8FC),
+                // 빈 항목이면 회색 배경
+                color: widget.entry.isEmpty
+                    ? Colors.grey.shade100
+                    : const Color(0xFFF8F8FC),
                 borderRadius: BorderRadius.circular(14),
+                // 빈 항목이면 점선 테두리
+                border: widget.entry.isEmpty
+                    ? Border.all(
+                        color: Colors.grey.shade300,
+                        style: BorderStyle.solid,
+                        width: 1,
+                      )
+                    : null,
               ),
-              child: Row(
-                children: [
-                  // 감정 이모지
-                  Text(widget.entry.emoji,
-                      style: const TextStyle(fontSize: 32)),
-                  const SizedBox(width: 14),
-
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              child: widget.entry.isEmpty
+                  // 빈 항목 UI
+                  ? Row(
                       children: [
-                        // 점수 닷
-                        Row(
-                          children: List.generate(5, (i) => Container(
-                            width: 8,
-                            height: 8,
-                            margin: const EdgeInsets.only(right: 3),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: i < widget.entry.score
-                                  ? const Color(0xFF534AB7)
-                                  : Colors.grey.shade300,
-                            ),
-                          )),
-                        ),
-                        const SizedBox(height: 4),
-
-                        // 한줄 메모
-                        Text(
-                          widget.entry.memo.isEmpty
-                              ? '메모 없음'
-                              : widget.entry.memo,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: widget.entry.memo.isEmpty
-                                ? Colors.grey
-                                : Colors.black87,
+                        const Text('😶', style: TextStyle(fontSize: 32)),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: List.generate(
+                                  5,
+                                  (i) => Container(
+                                    width: 8,
+                                    height: 8,
+                                    margin: const EdgeInsets.only(right: 3),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.grey.shade300,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                '감정을 기록해주세요',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
                           ),
+                        ),
+                        // 빈 항목은 할일 뱃지 숨김
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const SizedBox(height: 16),
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.entry.createdAt,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  // 정상 기록 UI
+                  : Row(
+                      children: [
+                        Text(
+                          widget.entry.emoji,
+                          style: const TextStyle(fontSize: 32),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: List.generate(
+                                  5,
+                                  (i) => Container(
+                                    width: 8,
+                                    height: 8,
+                                    margin: const EdgeInsets.only(right: 3),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: i < widget.entry.score
+                                          ? const Color(0xFF534AB7)
+                                          : Colors.grey.shade300,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                widget.entry.memo.isEmpty
+                                    ? '메모 없음'
+                                    : widget.entry.memo,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: widget.entry.memo.isEmpty
+                                      ? Colors.grey
+                                      : Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Row(
+                              children: [
+                                if (widget.entry.diary.isNotEmpty) ...[
+                                  const Icon(
+                                    Icons.edit_note_rounded,
+                                    size: 16,
+                                    color: Color(0xFF534AB7),
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                                _todoBadge(),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.entry.createdAt,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ),
-
-                  // 오른쪽: 아이콘들 + 시간
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Row(
-                        children: [
-                          // 일기 아이콘
-                          if (widget.entry.diary.isNotEmpty) ...[
-                            const Icon(
-                              Icons.edit_note_rounded,
-                              size: 16,
-                              color: Color(0xFF534AB7),
-                            ),
-                            const SizedBox(width: 4),
-                          ],
-                          // 할일 완료율 뱃지
-                          _todoBadge(),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.entry.createdAt,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
             ),
           ),
         ],

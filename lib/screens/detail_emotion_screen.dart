@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/emotion_entry.dart';
 import '../models/todo_entry.dart';
+import 'edit_emotion_screen.dart';
 
 class DetailEmotionScreen extends StatelessWidget {
   final EmotionEntry entry;
 
   const DetailEmotionScreen({super.key, required this.entry});
 
-  // 할일 완료 토글
   void _toggleDone(TodoEntry todo) {
     todo.isDone = !todo.isDone;
     todo.save();
@@ -16,6 +16,17 @@ class DetailEmotionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 빈 항목이면 바로 수정 화면으로 이동
+    if (entry.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => EditEmotionScreen(entry: entry)),
+        );
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -30,7 +41,6 @@ class DetailEmotionScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             // 감정 카드
             Container(
               width: double.infinity,
@@ -45,17 +55,20 @@ class DetailEmotionScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (i) => Container(
-                      width: 12,
-                      height: 12,
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: i < entry.score
-                            ? const Color(0xFF534AB7)
-                            : const Color(0xFFAFA9EC),
+                    children: List.generate(
+                      5,
+                      (i) => Container(
+                        width: 12,
+                        height: 12,
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: i < entry.score
+                              ? const Color(0xFF534AB7)
+                              : const Color(0xFFAFA9EC),
+                        ),
                       ),
-                    )),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -170,20 +183,20 @@ class DetailEmotionScreen extends StatelessWidget {
                   );
                 }
 
-                // 완료율 계산
                 final done = todos.where((t) => t.isDone).length;
                 final progress = done / todos.length;
 
                 return Column(
                   children: [
-                    // 완료율 바
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           '$done/${todos.length}개 완료',
                           style: const TextStyle(
-                              fontSize: 12, color: Colors.grey),
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
                         ),
                         Text(
                           '${(progress * 100).toInt()}%',
@@ -207,62 +220,66 @@ class DetailEmotionScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
 
-                    // 할일 목록 (체크 가능!)
-                    ...todos.map((todo) => GestureDetector(
-                      onTap: () => _toggleDone(todo),
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8F8FC),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            // 체크 버튼 (탭 가능)
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              width: 24,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: todo.isDone
-                                    ? const Color(0xFF534AB7)
-                                    : Colors.transparent,
-                                border: Border.all(
+                    // 할일 목록 (체크 가능)
+                    ...todos.map(
+                      (todo) => GestureDetector(
+                        onTap: () => _toggleDone(todo),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8F8FC),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
                                   color: todo.isDone
                                       ? const Color(0xFF534AB7)
-                                      : Colors.grey.shade400,
-                                  width: 2,
+                                      : Colors.transparent,
+                                  border: Border.all(
+                                    color: todo.isDone
+                                        ? const Color(0xFF534AB7)
+                                        : Colors.grey.shade400,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: todo.isDone
+                                    ? const Icon(
+                                        Icons.check,
+                                        size: 14,
+                                        color: Colors.white,
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  todo.title,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: todo.isDone
+                                        ? Colors.grey
+                                        : Colors.black87,
+                                    decoration: todo.isDone
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
                                 ),
                               ),
-                              child: todo.isDone
-                                  ? const Icon(Icons.check,
-                                      size: 14, color: Colors.white)
-                                  : null,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                todo.title,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  color: todo.isDone
-                                      ? Colors.grey
-                                      : Colors.black87,
-                                  decoration: todo.isDone
-                                      ? TextDecoration.lineThrough
-                                      : null,
-                                ),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    )),
+                    ),
                   ],
                 );
               },

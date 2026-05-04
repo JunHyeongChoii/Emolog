@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'models/emotion_entry.dart';
 import 'models/todo_entry.dart';
+import 'models/ledger_entry.dart';
 import 'screens/home_screen.dart';
 import 'screens/todo_screen.dart';
 
@@ -14,8 +15,66 @@ void main() async {
   Hive.registerAdapter(TodoEntryAdapter());
   await Hive.openBox<EmotionEntry>('emotions');
   await Hive.openBox<TodoEntry>('todos');
+  Hive.registerAdapter(LedgerEntryAdapter());
+  await Hive.openBox<LedgerEntry>('ledger');
+
+  // 앱 실행 시 빠진 날짜 자동 생성
+  await _fillMissingDates();
 
   runApp(const MyApp());
+}
+
+// 마지막 기록일부터 오늘까지 빠진 날짜 자동 생성
+Future<void> _fillMissingDates() async {
+  final box = Hive.box<EmotionEntry>('emotions');
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+
+  // 오늘 날짜 문자열
+  String dateToStr(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  // 이미 기록된 날짜 목록
+  final existingDates = box.values.map((e) => e.date).toSet();
+
+  // 마지막 기록일 찾기
+  DateTime startDate;
+  if (existingDates.isEmpty) {
+    // 기록이 하나도 없으면 오늘만 생성
+    startDate = today;
+  } else {
+    // 가장 최근 기록일 다음날부터 시작
+    final sortedDates = existingDates.toList()..sort();
+    final lastDateStr = sortedDates.last;
+    final parts = lastDateStr.split('-');
+    final lastDate = DateTime(
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+      int.parse(parts[2]),
+    );
+    startDate = lastDate.add(const Duration(days: 1));
+  }
+
+  // 시작일부터 오늘까지 빠진 날짜 채우기
+  DateTime current = startDate;
+  while (!current.isAfter(today)) {
+    final dateStr = dateToStr(current);
+
+    // 해당 날짜 기록이 없으면 빈 항목 생성
+    if (!existingDates.contains(dateStr)) {
+      final entry = EmotionEntry()
+        ..date = dateStr
+        ..score = 0
+        ..emoji = '😶'
+        ..memo = ''
+        ..diary = ''
+        ..isEmpty = true
+        ..createdAt = '00:00';
+      await box.add(entry);
+    }
+
+    current = current.add(const Duration(days: 1));
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -43,14 +102,9 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  // 현재 선택된 탭 인덱스
   int _currentIndex = 0;
 
-  // 탭별 화면
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const TodoScreen(),
-  ];
+  final List<Widget> _screens = [const HomeScreen(), const TodoScreen()];
 
   @override
   Widget build(BuildContext context) {
@@ -64,10 +118,7 @@ class _MainScreenState extends State<MainScreen> {
         backgroundColor: Colors.white,
         elevation: 8,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.mood_rounded),
-            label: '감정',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.mood_rounded), label: '감정'),
           BottomNavigationBarItem(
             icon: Icon(Icons.check_circle_outline_rounded),
             label: '할 일',
