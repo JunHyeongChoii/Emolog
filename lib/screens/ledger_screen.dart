@@ -172,8 +172,12 @@ class _LedgerScreenState extends State<LedgerScreen> {
                     ),
                     _summaryItem(
                       '잔액',
-                      _formatAmount(balance),
-                      const Color(0xFF534AB7),
+                      balance >= 0
+                          ? '+${_formatAmount(balance)}'
+                          : '-${_formatAmount(balance.abs())}',
+                      balance >= 0
+                          ? const Color(0xFF534AB7)
+                          : const Color(0xFFA32D2D),
                     ),
                   ],
                 ),
