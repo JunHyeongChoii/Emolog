@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/ledger_entry.dart';
 
@@ -10,14 +11,14 @@ class AddLedgerScreen extends StatefulWidget {
 }
 
 class _AddLedgerScreenState extends State<AddLedgerScreen> {
-  String _type = 'expense'; // 'income' / 'expense'
+  String _type = 'expense';
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _memoController = TextEditingController();
   String _selectedCategory = '식비';
   String _selectedEmoji = '🍔';
   DateTime _selectedDate = DateTime.now();
+  bool _isUpdating = false;
 
-  // 지출 카테고리
   final List<Map<String, String>> _expenseCategories = [
     {'name': '식비', 'emoji': '🍔'},
     {'name': '교통', 'emoji': '🚌'},
@@ -29,7 +30,6 @@ class _AddLedgerScreenState extends State<AddLedgerScreen> {
     {'name': '기타', 'emoji': '➕'},
   ];
 
-  // 수입 카테고리
   final List<Map<String, String>> _incomeCategories = [
     {'name': '월급', 'emoji': '💰'},
     {'name': '용돈', 'emoji': '🎁'},
@@ -42,13 +42,46 @@ class _AddLedgerScreenState extends State<AddLedgerScreen> {
       _type == 'expense' ? _expenseCategories : _incomeCategories;
 
   @override
+  void initState() {
+    super.initState();
+    // 금액 입력 시 천 단위 콤마 자동 추가
+    _amountController.addListener(() {
+      if (_isUpdating) return;
+      _isUpdating = true;
+
+      final text = _amountController.text.replaceAll(',', '');
+      if (text.isEmpty) {
+        _isUpdating = false;
+        return;
+      }
+
+      final number = int.tryParse(text);
+      if (number != null) {
+        final formatted = _addComma(number);
+        _amountController.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length),
+        );
+      }
+      _isUpdating = false;
+    });
+  }
+
+  // 천 단위 콤마 추가
+  String _addComma(int number) {
+    return number.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (m) => '${m[1]},',
+    );
+  }
+
+  @override
   void dispose() {
     _amountController.dispose();
     _memoController.dispose();
     super.dispose();
   }
 
-  // 날짜 선택
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -59,7 +92,6 @@ class _AddLedgerScreenState extends State<AddLedgerScreen> {
     if (picked != null) setState(() => _selectedDate = picked);
   }
 
-  // 저장
   void _save() async {
     if (_amountController.text.trim().isEmpty) {
       ScaffoldMessenger.of(
@@ -236,6 +268,7 @@ class _AddLedgerScreenState extends State<AddLedgerScreen> {
             TextField(
               controller: _amountController,
               keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: InputDecoration(
                 hintText: '0',
                 hintStyle: const TextStyle(color: Colors.grey),
