@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/emotion_entry.dart';
 import 'detail_emotion_screen.dart';
+import 'report_screen.dart';
 
 class MonthlyEmotionScreen extends StatefulWidget {
   const MonthlyEmotionScreen({super.key});
@@ -84,12 +85,22 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
           ],
         ),
         actions: [
+          // 리포트 버튼
+          IconButton(
+            icon: const Icon(Icons.bar_chart_rounded,
+              color: Color(0xFF534AB7)),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ReportScreen()),
+            ),
+          ),
           // 캘린더/리스트 뷰 전환
           IconButton(
             icon: Icon(
               _isCalendarView
-                  ? Icons.list_rounded
-                  : Icons.calendar_month_rounded,
+                ? Icons.list_rounded
+                : Icons.calendar_month_rounded,
               color: const Color(0xFF534AB7),
             ),
             onPressed: () =>
