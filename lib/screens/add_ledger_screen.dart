@@ -364,7 +364,7 @@ class _AddLedgerScreenState extends State<AddLedgerScreen> {
               controller: _memoController,
               maxLength: 30,
               decoration: InputDecoration(
-                hintText: '어디서 쓴 돈인가요?',
+                hintText: '',
                 hintStyle: const TextStyle(color: Colors.grey),
                 filled: true,
                 fillColor: const Color(0xFFF5F5F5),

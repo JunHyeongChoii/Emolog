@@ -17,6 +17,7 @@ class _EditLedgerScreenState extends State<EditLedgerScreen> {
   late String _selectedCategory;
   late String _selectedEmoji;
   late DateTime _selectedDate;
+  bool _isUpdating = false;
 
   final List<Map<String, String>> _expenseCategories = [
     {'name': '식비', 'emoji': '🍔'},
@@ -40,14 +41,19 @@ class _EditLedgerScreenState extends State<EditLedgerScreen> {
   List<Map<String, String>> get _categories =>
       _type == 'expense' ? _expenseCategories : _incomeCategories;
 
+  // 천 단위 콤마 추가
+  String _addComma(int number) {
+    return number.toString().replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+  }
+
   @override
   void initState() {
     super.initState();
-    // 기존 데이터로 초기화
     _type = widget.entry.type;
+    // 기존 금액에 콤마 붙여서 초기화
     _amountController = TextEditingController(
-      text: widget.entry.amount.toString(),
-    );
+        text: _addComma(widget.entry.amount));
     _memoController = TextEditingController(text: widget.entry.memo);
     _selectedCategory = widget.entry.category;
     _selectedEmoji = widget.entry.categoryEmoji;
@@ -57,6 +63,29 @@ class _EditLedgerScreenState extends State<EditLedgerScreen> {
       int.parse(parts[1]),
       int.parse(parts[2]),
     );
+
+    // 금액 입력 시 천 단위 콤마 자동 추가
+    _amountController.addListener(() {
+      if (_isUpdating) return;
+      _isUpdating = true;
+
+      final text = _amountController.text.replaceAll(',', '');
+      if (text.isEmpty) {
+        _isUpdating = false;
+        return;
+      }
+
+      final number = int.tryParse(text);
+      if (number != null) {
+        final formatted = _addComma(number);
+        _amountController.value = TextEditingValue(
+          text: formatted,
+          selection:
+              TextSelection.collapsed(offset: formatted.length),
+        );
+      }
+      _isUpdating = false;
+    });
   }
 
   @override
@@ -78,19 +107,18 @@ class _EditLedgerScreenState extends State<EditLedgerScreen> {
 
   void _save() async {
     if (_amountController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('금액을 입력해주세요!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('금액을 입력해주세요!')),
+      );
       return;
     }
 
     final amount = int.tryParse(
-      _amountController.text.replaceAll(',', '').trim(),
-    );
+        _amountController.text.replaceAll(',', '').trim());
     if (amount == null || amount <= 0) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('올바른 금액을 입력해주세요!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('올바른 금액을 입력해주세요!')),
+      );
       return;
     }
 
@@ -122,6 +150,7 @@ class _EditLedgerScreenState extends State<EditLedgerScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+
             // 수입/지출 탭
             Row(
               children: [
@@ -202,30 +231,24 @@ class _EditLedgerScreenState extends State<EditLedgerScreen> {
             const SizedBox(height: 24),
 
             // 날짜 선택
-            const Text(
-              '날짜',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+            const Text('날짜',
+                style: TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             GestureDetector(
               onTap: _pickDate,
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 14,
-                ),
+                    horizontal: 14, vertical: 14),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.calendar_today_rounded,
-                      size: 18,
-                      color: Colors.grey,
-                    ),
+                    const Icon(Icons.calendar_today_rounded,
+                        size: 18, color: Colors.grey),
                     const SizedBox(width: 10),
                     Text(
                       '${_selectedDate.year}년 ${_selectedDate.month}월 ${_selectedDate.day}일',
@@ -239,10 +262,9 @@ class _EditLedgerScreenState extends State<EditLedgerScreen> {
             const SizedBox(height: 24),
 
             // 금액 입력
-            const Text(
-              '금액',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+            const Text('금액',
+                style: TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             TextField(
               controller: _amountController,
@@ -270,10 +292,9 @@ class _EditLedgerScreenState extends State<EditLedgerScreen> {
             const SizedBox(height: 24),
 
             // 카테고리 선택
-            const Text(
-              '카테고리',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+            const Text('카테고리',
+                style: TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -288,21 +309,19 @@ class _EditLedgerScreenState extends State<EditLedgerScreen> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
+                        horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
                       color: isSelected
                           ? (_type == 'expense'
-                                ? const Color(0xFFFCEBEB)
-                                : const Color(0xFFE1F5EE))
+                              ? const Color(0xFFFCEBEB)
+                              : const Color(0xFFE1F5EE))
                           : const Color(0xFFF5F5F5),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: isSelected
                             ? (_type == 'expense'
-                                  ? const Color(0xFFA32D2D)
-                                  : const Color(0xFF0F6E56))
+                                ? const Color(0xFFA32D2D)
+                                : const Color(0xFF0F6E56))
                             : Colors.transparent,
                       ),
                     ),
@@ -315,8 +334,8 @@ class _EditLedgerScreenState extends State<EditLedgerScreen> {
                             : FontWeight.normal,
                         color: isSelected
                             ? (_type == 'expense'
-                                  ? const Color(0xFFA32D2D)
-                                  : const Color(0xFF0F6E56))
+                                ? const Color(0xFFA32D2D)
+                                : const Color(0xFF0F6E56))
                             : Colors.grey.shade700,
                       ),
                     ),
@@ -328,21 +347,18 @@ class _EditLedgerScreenState extends State<EditLedgerScreen> {
             const SizedBox(height: 24),
 
             // 메모
-            const Text(
-              '메모',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+            const Text('메모',
+                style: TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            const Text(
-              '선택 사항이에요',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
+            const Text('선택 사항이에요',
+                style: TextStyle(fontSize: 12, color: Colors.grey)),
             const SizedBox(height: 12),
             TextField(
               controller: _memoController,
               maxLength: 30,
               decoration: InputDecoration(
-                hintText: '어디서 쓴 돈인가요?',
+                hintText: '',
                 hintStyle: const TextStyle(color: Colors.grey),
                 filled: true,
                 fillColor: const Color(0xFFF5F5F5),
