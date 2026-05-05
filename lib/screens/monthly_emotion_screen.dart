@@ -72,6 +72,7 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             GestureDetector(
               onTap: _prevMonth,
@@ -93,12 +94,13 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
                 showEmotionDots: true,
               ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     '$_year년 $_month월',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 20,
+                      fontSize: 18,
                     ),
                   ),
                   const Icon(
