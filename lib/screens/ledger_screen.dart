@@ -4,6 +4,7 @@ import '../models/ledger_entry.dart';
 import 'add_ledger_screen.dart';
 import 'budget_screen.dart';
 import 'edit_ledger_screen.dart';
+import '../widgets/month_picker_widget.dart';
 
 class LedgerScreen extends StatefulWidget {
   const LedgerScreen({super.key});
@@ -83,9 +84,32 @@ class _LedgerScreenState extends State<LedgerScreen> {
               ),
             ),
             const SizedBox(width: 4),
-            Text(
-              '$_year년 $_month월',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            GestureDetector(
+              onTap: () => showMonthPicker(
+                context: context,
+                year: _year,
+                month: _month,
+                onChanged: (y, m) => setState(() {
+                  _year = y;
+                  _month = m;
+                }),
+                showLedgerDots: true,
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    '$_year년 $_month월',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                  const Icon(
+                    Icons.arrow_drop_down_rounded,
+                    color: Color(0xFF534AB7),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(width: 4),
             GestureDetector(

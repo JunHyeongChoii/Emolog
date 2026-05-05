@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/emotion_entry.dart';
 import '../models/todo_entry.dart';
 import '../models/ledger_entry.dart';
+import '../widgets/month_picker_widget.dart';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -25,24 +26,33 @@ class _ReportScreenState extends State<ReportScreen> {
 
   void _prevMonth() {
     setState(() {
-      if (_month == 1) { _month = 12; _year--; }
-      else { _month--; }
+      if (_month == 1) {
+        _month = 12;
+        _year--;
+      } else {
+        _month--;
+      }
     });
   }
 
   void _nextMonth() {
     setState(() {
-      if (_month == 12) { _month = 1; _year++; }
-      else { _month++; }
+      if (_month == 12) {
+        _month = 1;
+        _year++;
+      } else {
+        _month++;
+      }
     });
   }
 
-  String get _monthPrefix =>
-      '$_year-${_month.toString().padLeft(2, '0')}';
+  String get _monthPrefix => '$_year-${_month.toString().padLeft(2, '0')}';
 
   String _formatAmount(int amount) {
     return amount.toString().replaceAllMapped(
-        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (m) => '${m[1]},',
+    );
   }
 
   @override
@@ -79,8 +89,7 @@ class _ReportScreenState extends State<ReportScreen> {
     }
 
     // 긍정적인 날 (4~5점)
-    final positiveDays =
-        (scoreCounts[4] ?? 0) + (scoreCounts[5] ?? 0);
+    final positiveDays = (scoreCounts[4] ?? 0) + (scoreCounts[5] ?? 0);
 
     // 종합 평가 메시지
     String heroEmoji;
@@ -139,10 +148,8 @@ class _ReportScreenState extends State<ReportScreen> {
         }
       }
 
-      final avgStress =
-          stressCount > 0 ? stressSpend / stressDates.length : 0;
-      final avgNormal =
-          normalCount > 0 ? normalSpend / normalDates.length : 0;
+      final avgStress = stressCount > 0 ? stressSpend / stressDates.length : 0;
+      final avgNormal = normalCount > 0 ? normalSpend / normalDates.length : 0;
 
       if (stressDates.isNotEmpty && avgStress > avgNormal && avgNormal > 0) {
         final diff = ((avgStress - avgNormal) / avgNormal * 100).toInt();
@@ -162,12 +169,10 @@ class _ReportScreenState extends State<ReportScreen> {
       int lowTodoCount = 0;
 
       for (var e in emotions) {
-        final dayTodos =
-            todos.where((t) => t.date == e.date).toList();
+        final dayTodos = todos.where((t) => t.date == e.date).toList();
         if (dayTodos.isEmpty) continue;
 
-        final done =
-            dayTodos.where((t) => t.isDone).length;
+        final done = dayTodos.where((t) => t.isDone).length;
         final rate = done / dayTodos.length;
 
         if (rate >= 0.8) {
@@ -196,18 +201,24 @@ class _ReportScreenState extends State<ReportScreen> {
     for (var e in emotions) {
       final parts = e.date.split('-');
       final dt = DateTime(
-          int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      );
       weekdayScores.putIfAbsent(dt.weekday, () => []).add(e.score);
     }
 
     String weekdayInsight = '';
     if (weekdayScores.length >= 3) {
-      final weekdayAvgs = weekdayScores.map((k, v) =>
-          MapEntry(k, v.fold(0, (a, b) => a + b) / v.length));
-      final bestDay = weekdayAvgs.entries
-          .reduce((a, b) => a.value >= b.value ? a : b);
-      final worstDay = weekdayAvgs.entries
-          .reduce((a, b) => a.value <= b.value ? a : b);
+      final weekdayAvgs = weekdayScores.map(
+        (k, v) => MapEntry(k, v.fold(0, (a, b) => a + b) / v.length),
+      );
+      final bestDay = weekdayAvgs.entries.reduce(
+        (a, b) => a.value >= b.value ? a : b,
+      );
+      final worstDay = weekdayAvgs.entries.reduce(
+        (a, b) => a.value <= b.value ? a : b,
+      );
       const weekdays = ['', '월', '화', '수', '목', '금', '토', '일'];
       weekdayInsight =
           '${weekdays[bestDay.key]}요일이 평균 ${bestDay.value.toStringAsFixed(1)}점으로 가장 좋고, ${weekdays[worstDay.key]}요일이 평균 ${worstDay.value.toStringAsFixed(1)}점으로 가장 힘들었어요.';
@@ -222,11 +233,13 @@ class _ReportScreenState extends State<ReportScreen> {
       });
     }
     if (weekdayScores.isNotEmpty) {
-      final weekdayAvgs = weekdayScores.map((k, v) =>
-          MapEntry(k, v.fold(0, (a, b) => a + b) / v.length));
+      final weekdayAvgs = weekdayScores.map(
+        (k, v) => MapEntry(k, v.fold(0, (a, b) => a + b) / v.length),
+      );
       if (weekdayAvgs.isNotEmpty) {
-        final worstDay = weekdayAvgs.entries
-            .reduce((a, b) => a.value <= b.value ? a : b);
+        final worstDay = weekdayAvgs.entries.reduce(
+          (a, b) => a.value <= b.value ? a : b,
+        );
         const weekdays = ['', '월', '화', '수', '목', '금', '토', '일'];
         tips.add({
           'title': '${weekdays[worstDay.key]}요일 루틴 만들기',
@@ -256,20 +269,46 @@ class _ReportScreenState extends State<ReportScreen> {
           children: [
             GestureDetector(
               onTap: _prevMonth,
-              child: const Icon(Icons.chevron_left_rounded,
-                  color: Color(0xFF534AB7)),
+              child: const Icon(
+                Icons.chevron_left_rounded,
+                color: Color(0xFF534AB7),
+              ),
             ),
             const SizedBox(width: 4),
-            Text(
-              '$_year년 $_month월 리포트',
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 18),
+            GestureDetector(
+              onTap: () => showMonthPicker(
+                context: context,
+                year: _year,
+                month: _month,
+                onChanged: (y, m) => setState(() {
+                  _year = y;
+                  _month = m;
+                }),
+                showEmotionDots: true,
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    '$_year년 $_month월 리포트',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  const Icon(
+                    Icons.arrow_drop_down_rounded,
+                    color: Color(0xFF534AB7),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(width: 4),
             GestureDetector(
               onTap: _nextMonth,
-              child: const Icon(Icons.chevron_right_rounded,
-                  color: Color(0xFF534AB7)),
+              child: const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFF534AB7),
+              ),
             ),
           ],
         ),
@@ -279,7 +318,6 @@ class _ReportScreenState extends State<ReportScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             // 종합 평가 카드
             Container(
               width: double.infinity,
@@ -290,8 +328,7 @@ class _ReportScreenState extends State<ReportScreen> {
               ),
               child: Column(
                 children: [
-                  Text(heroEmoji,
-                      style: const TextStyle(fontSize: 48)),
+                  Text(heroEmoji, style: const TextStyle(fontSize: 48)),
                   const SizedBox(height: 10),
                   Text(
                     heroTitle,
@@ -306,7 +343,9 @@ class _ReportScreenState extends State<ReportScreen> {
                   Text(
                     heroDesc,
                     style: const TextStyle(
-                        fontSize: 13, color: Color(0xFF534AB7)),
+                      fontSize: 13,
+                      color: Color(0xFF534AB7),
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -316,19 +355,25 @@ class _ReportScreenState extends State<ReportScreen> {
             const SizedBox(height: 16),
 
             if (totalDays > 0) ...[
-
               // 인사이트
-              const Text('이달의 인사이트',
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey)),
+              const Text(
+                '이달의 인사이트',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey,
+                ),
+              ),
               const SizedBox(height: 8),
 
               // 지출 인사이트
               if (spendingInsight.isNotEmpty)
-                _insightCard('💸', '스트레스와 지출의 관계', spendingInsight,
-                    spendingInsight.contains('충동 소비')),
+                _insightCard(
+                  '💸',
+                  '스트레스와 지출의 관계',
+                  spendingInsight,
+                  spendingInsight.contains('충동 소비'),
+                ),
 
               // 할일 인사이트
               if (todoInsight.isNotEmpty)
@@ -341,11 +386,14 @@ class _ReportScreenState extends State<ReportScreen> {
               const SizedBox(height: 16),
 
               // 감정 분포
-              const Text('감정 분포',
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey)),
+              const Text(
+                '감정 분포',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey,
+                ),
+              ),
               const SizedBox(height: 8),
 
               ...[1, 2, 3, 4, 5].map((score) {
@@ -361,16 +409,14 @@ class _ReportScreenState extends State<ReportScreen> {
                 final count = scoreCounts[score] ?? 0;
                 final maxCount = scoreCounts.values.isEmpty
                     ? 1
-                    : scoreCounts.values
-                        .reduce((a, b) => a > b ? a : b);
+                    : scoreCounts.values.reduce((a, b) => a > b ? a : b);
                 final ratio = maxCount > 0 ? count / maxCount : 0.0;
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Row(
                     children: [
-                      Text(emojis[score],
-                          style: const TextStyle(fontSize: 16)),
+                      Text(emojis[score], style: const TextStyle(fontSize: 16)),
                       const SizedBox(width: 8),
                       Expanded(
                         child: ClipRRect(
@@ -389,7 +435,9 @@ class _ReportScreenState extends State<ReportScreen> {
                         child: Text(
                           '$count일',
                           style: const TextStyle(
-                              fontSize: 11, color: Colors.grey),
+                            fontSize: 11,
+                            color: Colors.grey,
+                          ),
                           textAlign: TextAlign.right,
                         ),
                       ),
@@ -401,42 +449,48 @@ class _ReportScreenState extends State<ReportScreen> {
               const SizedBox(height: 16),
 
               // 다음 달 팁
-              const Text('💡 다음 달을 위한 팁',
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey)),
+              const Text(
+                '💡 다음 달을 위한 팁',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey,
+                ),
+              ),
               const SizedBox(height: 8),
 
-              ...tips.map((tip) => Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE1F5EE),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          tip['title']!,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF085041),
-                          ),
+              ...tips.map(
+                (tip) => Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE1F5EE),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tip['title']!,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF085041),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          tip['desc']!,
-                          style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF0F6E56),
-                              height: 1.5),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        tip['desc']!,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF0F6E56),
+                          height: 1.5,
                         ),
-                      ],
-                    ),
-                  )),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
 
             const SizedBox(height: 24),
@@ -446,8 +500,7 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  Widget _insightCard(
-      String icon, String title, String desc, bool isWarning) {
+  Widget _insightCard(String icon, String title, String desc, bool isWarning) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
@@ -465,7 +518,9 @@ class _ReportScreenState extends State<ReportScreen> {
               Text(
                 title,
                 style: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w500),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
@@ -474,9 +529,7 @@ class _ReportScreenState extends State<ReportScreen> {
             desc,
             style: TextStyle(
               fontSize: 12,
-              color: isWarning
-                  ? const Color(0xFFA32D2D)
-                  : Colors.black87,
+              color: isWarning ? const Color(0xFFA32D2D) : Colors.black87,
               height: 1.6,
             ),
           ),

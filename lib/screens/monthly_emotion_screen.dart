@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/emotion_entry.dart';
 import 'detail_emotion_screen.dart';
 import 'report_screen.dart';
+import '../widgets/month_picker_widget.dart';
 
 class MonthlyEmotionScreen extends StatefulWidget {
   const MonthlyEmotionScreen({super.key});
@@ -26,20 +27,27 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
 
   void _prevMonth() {
     setState(() {
-      if (_month == 1) { _month = 12; _year--; }
-      else { _month--; }
+      if (_month == 1) {
+        _month = 12;
+        _year--;
+      } else {
+        _month--;
+      }
     });
   }
 
   void _nextMonth() {
     setState(() {
-      if (_month == 12) { _month = 1; _year++; }
-      else { _month++; }
+      if (_month == 12) {
+        _month = 1;
+        _year++;
+      } else {
+        _month++;
+      }
     });
   }
 
-  String get _monthPrefix =>
-      '$_year-${_month.toString().padLeft(2, '0')}';
+  String get _monthPrefix => '$_year-${_month.toString().padLeft(2, '0')}';
 
   final List<String> _weekdayLabels = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -67,44 +75,67 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
           children: [
             GestureDetector(
               onTap: _prevMonth,
-              child: const Icon(Icons.chevron_left_rounded,
-                  color: Color(0xFF534AB7)),
+              child: const Icon(
+                Icons.chevron_left_rounded,
+                color: Color(0xFF534AB7),
+              ),
             ),
             const SizedBox(width: 4),
-            Text(
-              '$_year년 $_month월',
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 20),
+            GestureDetector(
+              onTap: () => showMonthPicker(
+                context: context,
+                year: _year,
+                month: _month,
+                onChanged: (y, m) => setState(() {
+                  _year = y;
+                  _month = m;
+                }),
+                showEmotionDots: true,
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    '$_year년 $_month월',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                  const Icon(
+                    Icons.arrow_drop_down_rounded,
+                    color: Color(0xFF534AB7),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(width: 4),
             GestureDetector(
               onTap: _nextMonth,
-              child: const Icon(Icons.chevron_right_rounded,
-                  color: Color(0xFF534AB7)),
+              child: const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFF534AB7),
+              ),
             ),
           ],
         ),
         actions: [
           // 리포트 버튼
           IconButton(
-            icon: const Icon(Icons.bar_chart_rounded,
-              color: Color(0xFF534AB7)),
+            icon: const Icon(Icons.bar_chart_rounded, color: Color(0xFF534AB7)),
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => const ReportScreen()),
+              MaterialPageRoute(builder: (_) => const ReportScreen()),
             ),
           ),
           // 캘린더/리스트 뷰 전환
           IconButton(
             icon: Icon(
               _isCalendarView
-                ? Icons.list_rounded
-                : Icons.calendar_month_rounded,
+                  ? Icons.list_rounded
+                  : Icons.calendar_month_rounded,
               color: const Color(0xFF534AB7),
             ),
-            onPressed: () =>
-                setState(() => _isCalendarView = !_isCalendarView),
+            onPressed: () => setState(() => _isCalendarView = !_isCalendarView),
           ),
         ],
       ),
@@ -112,10 +143,9 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
         valueListenable: Hive.box<EmotionEntry>('emotions').listenable(),
         builder: (context, box, _) {
           // 해당 월 기록 필터링
-          final entries = box.values
-              .where((e) => e.date.startsWith(_monthPrefix))
-              .toList()
-            ..sort((a, b) => a.date.compareTo(b.date));
+          final entries =
+              box.values.where((e) => e.date.startsWith(_monthPrefix)).toList()
+                ..sort((a, b) => a.date.compareTo(b.date));
 
           // 날짜별 Map
           final Map<String, EmotionEntry> entryMap = {};
@@ -124,14 +154,12 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
           }
 
           // 실제 기록된 항목 (isEmpty 제외)
-          final recorded =
-              entries.where((e) => !e.isEmpty).toList();
+          final recorded = entries.where((e) => !e.isEmpty).toList();
 
           // 평균 점수
           final avgScore = recorded.isEmpty
               ? 0.0
-              : recorded.fold(0, (sum, e) => sum + e.score) /
-                  recorded.length;
+              : recorded.fold(0, (sum, e) => sum + e.score) / recorded.length;
 
           // 감정별 횟수
           final Map<int, int> scoreCounts = {};
@@ -154,7 +182,6 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 // 요약 카드
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -166,23 +193,26 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _summaryItem(
-                          '평균 기분',
-                          avgScore == 0
-                              ? '-'
-                              : avgScore.toStringAsFixed(1),
-                          const Color(0xFF534AB7)),
+                        '평균 기분',
+                        avgScore == 0 ? '-' : avgScore.toStringAsFixed(1),
+                        const Color(0xFF534AB7),
+                      ),
                       Container(
-                          width: 0.5,
-                          height: 40,
-                          color: const Color(0xFFAFA9EC)),
-                      _summaryItem('최다 감정', topEmoji,
-                          const Color(0xFF534AB7)),
+                        width: 0.5,
+                        height: 40,
+                        color: const Color(0xFFAFA9EC),
+                      ),
+                      _summaryItem('최다 감정', topEmoji, const Color(0xFF534AB7)),
                       Container(
-                          width: 0.5,
-                          height: 40,
-                          color: const Color(0xFFAFA9EC)),
-                      _summaryItem('기록한 날', '${recorded.length}일',
-                          const Color(0xFF534AB7)),
+                        width: 0.5,
+                        height: 40,
+                        color: const Color(0xFFAFA9EC),
+                      ),
+                      _summaryItem(
+                        '기록한 날',
+                        '${recorded.length}일',
+                        const Color(0xFF534AB7),
+                      ),
                     ],
                   ),
                 ),
@@ -191,11 +221,14 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
 
                 // 감정별 횟수
                 if (recorded.isNotEmpty) ...[
-                  const Text('감정별 횟수',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey)),
+                  const Text(
+                    '감정별 횟수',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -234,31 +267,38 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('이달 기록',
-            style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey)),
+        const Text(
+          '이달 기록',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey,
+          ),
+        ),
         const SizedBox(height: 8),
 
         // 요일 헤더
         Row(
-          children: _weekdayLabels.map((d) => Expanded(
-            child: Center(
-              child: Text(
-                d,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: d == '토'
-                      ? Colors.blue.shade400
-                      : d == '일'
-                          ? Colors.red.shade400
-                          : Colors.grey,
+          children: _weekdayLabels
+              .map(
+                (d) => Expanded(
+                  child: Center(
+                    child: Text(
+                      d,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: d == '토'
+                            ? Colors.blue.shade400
+                            : d == '일'
+                            ? Colors.red.shade400
+                            : Colors.grey,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          )).toList(),
+              )
+              .toList(),
         ),
         const SizedBox(height: 6),
 
@@ -277,18 +317,18 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
             final day = index - firstWeekday + 1;
             final dateStr = _dateStr(day);
             final entry = entryMap[dateStr];
-            final isToday = dateStr ==
+            final isToday =
+                dateStr ==
                 '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}';
 
             return GestureDetector(
               onTap: entry != null
                   ? () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              DetailEmotionScreen(entry: entry),
-                        ),
-                      )
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => DetailEmotionScreen(entry: entry),
+                      ),
+                    )
                   : null,
               child: Container(
                 margin: const EdgeInsets.all(2),
@@ -298,16 +338,14 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                   border: isToday
-                      ? Border.all(
-                          color: const Color(0xFF534AB7), width: 1.5)
+                      ? Border.all(color: const Color(0xFF534AB7), width: 1.5)
                       : null,
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (entry != null && !entry.isEmpty)
-                      Text(entry.emoji,
-                          style: const TextStyle(fontSize: 16))
+                      Text(entry.emoji, style: const TextStyle(fontSize: 16))
                     else
                       const SizedBox(height: 16),
                     const SizedBox(height: 2),
@@ -315,9 +353,7 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
                       '$day',
                       style: TextStyle(
                         fontSize: 10,
-                        color: isToday
-                            ? const Color(0xFF534AB7)
-                            : Colors.grey,
+                        color: isToday ? const Color(0xFF534AB7) : Colors.grey,
                         fontWeight: isToday
                             ? FontWeight.bold
                             : FontWeight.normal,
@@ -335,8 +371,11 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
 
   // 리스트 뷰
   Widget _buildList(List<EmotionEntry> entries) {
-    final filtered =
-        entries.where((e) => !e.isEmpty).toList().reversed.toList();
+    final filtered = entries
+        .where((e) => !e.isEmpty)
+        .toList()
+        .reversed
+        .toList();
 
     if (filtered.isEmpty) {
       return const Center(
@@ -390,16 +429,14 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
                     ),
                     Text(
                       weekday,
-                      style: const TextStyle(
-                          fontSize: 11, color: Colors.grey),
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
                     ),
                   ],
                 ),
                 const SizedBox(width: 14),
 
                 // 이모지
-                Text(entry.emoji,
-                    style: const TextStyle(fontSize: 30)),
+                Text(entry.emoji, style: const TextStyle(fontSize: 30)),
                 const SizedBox(width: 12),
 
                 // 점수 + 메모
@@ -408,17 +445,20 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        children: List.generate(5, (i) => Container(
-                          width: 8,
-                          height: 8,
-                          margin: const EdgeInsets.only(right: 3),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: i < entry.score
-                                ? const Color(0xFF534AB7)
-                                : Colors.grey.shade300,
+                        children: List.generate(
+                          5,
+                          (i) => Container(
+                            width: 8,
+                            height: 8,
+                            margin: const EdgeInsets.only(right: 3),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: i < entry.score
+                                  ? const Color(0xFF534AB7)
+                                  : Colors.grey.shade300,
+                            ),
                           ),
-                        )),
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -436,8 +476,11 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
 
                 // 일기 아이콘
                 if (entry.diary.isNotEmpty)
-                  const Icon(Icons.edit_note_rounded,
-                      size: 16, color: Color(0xFF534AB7)),
+                  const Icon(
+                    Icons.edit_note_rounded,
+                    size: 16,
+                    color: Color(0xFF534AB7),
+                  ),
               ],
             ),
           ),
@@ -458,9 +501,10 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(label,
-            style: const TextStyle(
-                fontSize: 11, color: Color(0xFF534AB7))),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: Color(0xFF534AB7)),
+        ),
       ],
     );
   }
@@ -477,9 +521,10 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
           children: [
             Text(emoji, style: const TextStyle(fontSize: 18)),
             const SizedBox(height: 2),
-            Text('$count회',
-                style: const TextStyle(
-                    fontSize: 10, color: Colors.grey)),
+            Text(
+              '$count회',
+              style: const TextStyle(fontSize: 10, color: Colors.grey),
+            ),
           ],
         ),
       ),
