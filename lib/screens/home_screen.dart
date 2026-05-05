@@ -1,3 +1,4 @@
+import 'monthly_emotion_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/emotion_entry.dart';
@@ -50,7 +51,12 @@ class HomeScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.bar_chart_rounded),
-            onPressed: () {},
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const MonthlyEmotionScreen(),
+              ),
+            ),
           ),
         ],
       ),
