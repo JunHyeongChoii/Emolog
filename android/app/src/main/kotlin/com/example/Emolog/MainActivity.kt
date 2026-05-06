@@ -1,4 +1,4 @@
-package com.example.moolog
+package com.example.Emolog
 
 import io.flutter.embedding.android.FlutterActivity
 
