@@ -20,7 +20,7 @@ class NotificationService {
 
     const android =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-    const ios = IOSInitializationSettings(
+    const ios = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
@@ -32,6 +32,15 @@ class NotificationService {
     );
 
     await _plugin.initialize(settings);
+
+    try {
+      final androidPlugin = _plugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      await androidPlugin?.requestNotificationsPermission();
+    } catch (e) {
+      debugPrint('알림 권한 요청 실패: $e');
+    }
   }
 
   Future<void> scheduleDailyNotification({
@@ -71,12 +80,13 @@ class NotificationService {
             importance: Importance.high,
             priority: Priority.high,
           ),
-          iOS: IOSNotificationDetails(),
+          iOS: DarwinNotificationDetails(),
         ),
-        androidAllowWhileIdle: true,
+        androidScheduleMode:
+            AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.time,
       );
     } catch (e) {
       debugPrint('알림 설정 실패: $e');
