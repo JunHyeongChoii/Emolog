@@ -1,4 +1,3 @@
-import 'monthly_emotion_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/emotion_entry.dart';
@@ -6,6 +5,8 @@ import '../models/todo_entry.dart';
 import 'add_emotion_screen.dart';
 import 'edit_emotion_screen.dart';
 import 'detail_emotion_screen.dart';
+import 'monthly_emotion_screen.dart';
+import 'notification_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -15,10 +16,8 @@ class HomeScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          '기록 삭제',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text('기록 삭제',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('이 감정 기록을 삭제할까요?\n삭제하면 되돌릴 수 없어요.'),
         actions: [
           TextButton(
@@ -27,10 +26,9 @@ class HomeScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              '삭제',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-            ),
+            child: const Text('삭제',
+                style: TextStyle(
+                    color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -49,13 +47,22 @@ class HomeScreen extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         actions: [
+          // 알림 설정 버튼
+          IconButton(
+            icon: const Icon(Icons.notifications_none_rounded),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const NotificationScreen()),
+            ),
+          ),
+          // 통계 버튼
           IconButton(
             icon: const Icon(Icons.bar_chart_rounded),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const MonthlyEmotionScreen(),
-              ),
+                  builder: (_) => const MonthlyEmotionScreen()),
             ),
           ),
         ],
@@ -97,12 +104,12 @@ class HomeScreen extends StatelessWidget {
                   final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
                   final weekday = weekdays[dt.weekday - 1];
 
-                  // 해당 날짜 할일 완료율 계산
                   final todos = todoBox.values
                       .where((t) => t.date == date)
                       .toList();
                   final totalTodos = todos.length;
-                  final doneTodos = todos.where((t) => t.isDone).length;
+                  final doneTodos =
+                      todos.where((t) => t.isDone).length;
                   final todoProgress = totalTodos == 0
                       ? -1.0
                       : doneTodos / totalTodos;
@@ -110,7 +117,6 @@ class HomeScreen extends StatelessWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 날짜 헤더
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         child: Row(
@@ -133,8 +139,6 @@ class HomeScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-
-                      // 감정 카드 목록
                       ...dayEntries.map(
                         (entry) => _SwipeCard(
                           entry: entry,
@@ -142,19 +146,20 @@ class HomeScreen extends StatelessWidget {
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => DetailEmotionScreen(entry: entry),
+                              builder: (_) =>
+                                  DetailEmotionScreen(entry: entry),
                             ),
                           ),
                           onEdit: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => EditEmotionScreen(entry: entry),
+                              builder: (_) =>
+                                  EditEmotionScreen(entry: entry),
                             ),
                           ),
                           onDelete: () => _confirmDelete(context, entry),
                         ),
                       ),
-
                       const Divider(height: 24),
                     ],
                   );
@@ -199,7 +204,6 @@ class _SwipeCardState extends State<_SwipeCard> {
   double _dragOffset = 0.0;
   static const double _maxOffset = 80.0;
 
-  // 할일 완료율 뱃지
   Widget _todoBadge() {
     if (widget.todoProgress < 0) {
       return Container(
@@ -301,16 +305,14 @@ class _SwipeCardState extends State<_SwipeCard> {
                 child: const Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.edit_rounded, color: Colors.white, size: 24),
+                    Icon(Icons.edit_rounded,
+                        color: Colors.white, size: 24),
                     SizedBox(height: 4),
-                    Text(
-                      '수정',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text('수정',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -339,16 +341,14 @@ class _SwipeCardState extends State<_SwipeCard> {
                   child: const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.delete, color: Colors.white, size: 24),
+                      Icon(Icons.delete,
+                          color: Colors.white, size: 24),
                       SizedBox(height: 4),
-                      Text(
-                        '삭제',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      Text('삭제',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -363,33 +363,32 @@ class _SwipeCardState extends State<_SwipeCard> {
                 : () => setState(() => _dragOffset = 0.0),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              transform: Matrix4.translationValues(-_dragOffset, 0, 0),
+              transform:
+                  Matrix4.translationValues(-_dragOffset, 0, 0),
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                // 빈 항목이면 회색 배경
                 color: widget.entry.isEmpty
                     ? Colors.grey.shade100
                     : const Color(0xFFF8F8FC),
                 borderRadius: BorderRadius.circular(14),
-                // 빈 항목이면 점선 테두리
                 border: widget.entry.isEmpty
                     ? Border.all(
                         color: Colors.grey.shade300,
-                        style: BorderStyle.solid,
                         width: 1,
                       )
                     : null,
               ),
               child: widget.entry.isEmpty
-                  // 빈 항목 UI
                   ? Row(
                       children: [
-                        const Text('😶', style: TextStyle(fontSize: 32)),
+                        const Text('😶',
+                            style: TextStyle(fontSize: 32)),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: List.generate(
@@ -397,7 +396,8 @@ class _SwipeCardState extends State<_SwipeCard> {
                                   (i) => Container(
                                     width: 8,
                                     height: 8,
-                                    margin: const EdgeInsets.only(right: 3),
+                                    margin: const EdgeInsets.only(
+                                        right: 3),
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: Colors.grey.shade300,
@@ -416,9 +416,9 @@ class _SwipeCardState extends State<_SwipeCard> {
                             ],
                           ),
                         ),
-                        // 빈 항목은 할일 뱃지 숨김
                         Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                          crossAxisAlignment:
+                              CrossAxisAlignment.end,
                           children: [
                             const SizedBox(height: 16),
                             const SizedBox(height: 4),
@@ -433,17 +433,15 @@ class _SwipeCardState extends State<_SwipeCard> {
                         ),
                       ],
                     )
-                  // 정상 기록 UI
                   : Row(
                       children: [
-                        Text(
-                          widget.entry.emoji,
-                          style: const TextStyle(fontSize: 32),
-                        ),
+                        Text(widget.entry.emoji,
+                            style: const TextStyle(fontSize: 32)),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: List.generate(
@@ -451,7 +449,8 @@ class _SwipeCardState extends State<_SwipeCard> {
                                   (i) => Container(
                                     width: 8,
                                     height: 8,
-                                    margin: const EdgeInsets.only(right: 3),
+                                    margin: const EdgeInsets.only(
+                                        right: 3),
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: i < widget.entry.score
@@ -477,7 +476,8 @@ class _SwipeCardState extends State<_SwipeCard> {
                           ),
                         ),
                         Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                          crossAxisAlignment:
+                              CrossAxisAlignment.end,
                           children: [
                             Row(
                               children: [

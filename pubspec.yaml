@@ -36,6 +36,10 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
 
+  # 로컬 알림
+  flutter_local_notifications: ^9.9.1
+  timezone: ^0.8.0
+
   # 상태 관리
   flutter_riverpod: ^2.5.1
 

@@ -6,6 +6,7 @@ import 'models/ledger_entry.dart';
 import 'screens/home_screen.dart';
 import 'screens/todo_screen.dart';
 import 'screens/ledger_screen.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,9 @@ void main() async {
 
   // 앱 실행 시 빠진 날짜 자동 생성
   await _fillMissingDates();
+
+  // 알림 서비스 초기화
+  await NotificationService().init();
 
   runApp(const MyApp());
 }
