@@ -7,6 +7,7 @@ import 'screens/home_screen.dart';
 import 'screens/todo_screen.dart';
 import 'screens/ledger_screen.dart';
 import 'services/notification_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +26,17 @@ void main() async {
 
   // 알림 서비스 초기화
   await NotificationService().init();
-
+  // 저장된 알림 설정 복원
+  final prefs = await SharedPreferences.getInstance();
+  final isEnabled = prefs.getBool('notification_enabled') ?? false;
+  final hour = prefs.getInt('notification_hour') ?? 21;
+  final minute = prefs.getInt('notification_minute') ?? 0;
+  if (isEnabled) {
+    await NotificationService().scheduleDailyNotification(
+      hour: hour,
+      minute: minute,
+    );
+  }
   runApp(const MyApp());
 }
 
