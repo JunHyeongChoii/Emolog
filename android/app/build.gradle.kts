@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.moolog"
+    namespace = "com.example.Emolog"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -22,7 +22,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.moolog"
+        applicationId = "com.example.Emolog"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
