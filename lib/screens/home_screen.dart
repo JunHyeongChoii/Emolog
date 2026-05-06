@@ -16,8 +16,10 @@ class HomeScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('기록 삭제',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          '기록 삭제',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: const Text('이 감정 기록을 삭제할까요?\n삭제하면 되돌릴 수 없어요.'),
         actions: [
           TextButton(
@@ -26,9 +28,10 @@ class HomeScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('삭제',
-                style: TextStyle(
-                    color: Colors.red, fontWeight: FontWeight.bold)),
+            child: const Text(
+              '삭제',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -52,8 +55,7 @@ class HomeScreen extends StatelessWidget {
             icon: const Icon(Icons.notifications_none_rounded),
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                  builder: (_) => const NotificationScreen()),
+              MaterialPageRoute(builder: (_) => const NotificationScreen()),
             ),
           ),
           // 통계 버튼
@@ -61,8 +63,7 @@ class HomeScreen extends StatelessWidget {
             icon: const Icon(Icons.bar_chart_rounded),
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                  builder: (_) => const MonthlyEmotionScreen()),
+              MaterialPageRoute(builder: (_) => const MonthlyEmotionScreen()),
             ),
           ),
         ],
@@ -82,8 +83,16 @@ class HomeScreen extends StatelessWidget {
                   ),
                 );
               }
+//
+              final entries = emotionBox.values.toList()
+                ..sort((a, b) {
+                  // 날짜가 같으면 생성 시간(createdAt) 비교, 다르면 날짜(date) 비교
+                  if (a.date == b.date) {
+                    return a.createdAt.compareTo(b.createdAt); // 시간 내림차순
+                  }
+                  return a.date.compareTo(b.date); // 날짜 내림차순
+                });
 
-              final entries = emotionBox.values.toList();
               final Map<String, List<EmotionEntry>> grouped = {};
               for (var entry in entries) {
                 grouped.putIfAbsent(entry.date, () => []).add(entry);
@@ -108,8 +117,7 @@ class HomeScreen extends StatelessWidget {
                       .where((t) => t.date == date)
                       .toList();
                   final totalTodos = todos.length;
-                  final doneTodos =
-                      todos.where((t) => t.isDone).length;
+                  final doneTodos = todos.where((t) => t.isDone).length;
                   final todoProgress = totalTodos == 0
                       ? -1.0
                       : doneTodos / totalTodos;
@@ -146,15 +154,13 @@ class HomeScreen extends StatelessWidget {
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  DetailEmotionScreen(entry: entry),
+                              builder: (_) => DetailEmotionScreen(entry: entry),
                             ),
                           ),
                           onEdit: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  EditEmotionScreen(entry: entry),
+                              builder: (_) => EditEmotionScreen(entry: entry),
                             ),
                           ),
                           onDelete: () => _confirmDelete(context, entry),
@@ -305,14 +311,16 @@ class _SwipeCardState extends State<_SwipeCard> {
                 child: const Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.edit_rounded,
-                        color: Colors.white, size: 24),
+                    Icon(Icons.edit_rounded, color: Colors.white, size: 24),
                     SizedBox(height: 4),
-                    Text('수정',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold)),
+                    Text(
+                      '수정',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -341,14 +349,16 @@ class _SwipeCardState extends State<_SwipeCard> {
                   child: const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.delete,
-                          color: Colors.white, size: 24),
+                      Icon(Icons.delete, color: Colors.white, size: 24),
                       SizedBox(height: 4),
-                      Text('삭제',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold)),
+                      Text(
+                        '삭제',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -363,8 +373,7 @@ class _SwipeCardState extends State<_SwipeCard> {
                 : () => setState(() => _dragOffset = 0.0),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              transform:
-                  Matrix4.translationValues(-_dragOffset, 0, 0),
+              transform: Matrix4.translationValues(-_dragOffset, 0, 0),
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -373,22 +382,17 @@ class _SwipeCardState extends State<_SwipeCard> {
                     : const Color(0xFFF8F8FC),
                 borderRadius: BorderRadius.circular(14),
                 border: widget.entry.isEmpty
-                    ? Border.all(
-                        color: Colors.grey.shade300,
-                        width: 1,
-                      )
+                    ? Border.all(color: Colors.grey.shade300, width: 1)
                     : null,
               ),
               child: widget.entry.isEmpty
                   ? Row(
                       children: [
-                        const Text('😶',
-                            style: TextStyle(fontSize: 32)),
+                        const Text('😶', style: TextStyle(fontSize: 32)),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: List.generate(
@@ -396,8 +400,7 @@ class _SwipeCardState extends State<_SwipeCard> {
                                   (i) => Container(
                                     width: 8,
                                     height: 8,
-                                    margin: const EdgeInsets.only(
-                                        right: 3),
+                                    margin: const EdgeInsets.only(right: 3),
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: Colors.grey.shade300,
@@ -417,8 +420,7 @@ class _SwipeCardState extends State<_SwipeCard> {
                           ),
                         ),
                         Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             const SizedBox(height: 16),
                             const SizedBox(height: 4),
@@ -435,13 +437,14 @@ class _SwipeCardState extends State<_SwipeCard> {
                     )
                   : Row(
                       children: [
-                        Text(widget.entry.emoji,
-                            style: const TextStyle(fontSize: 32)),
+                        Text(
+                          widget.entry.emoji,
+                          style: const TextStyle(fontSize: 32),
+                        ),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: List.generate(
@@ -449,8 +452,7 @@ class _SwipeCardState extends State<_SwipeCard> {
                                   (i) => Container(
                                     width: 8,
                                     height: 8,
-                                    margin: const EdgeInsets.only(
-                                        right: 3),
+                                    margin: const EdgeInsets.only(right: 3),
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: i < widget.entry.score
@@ -476,8 +478,7 @@ class _SwipeCardState extends State<_SwipeCard> {
                           ),
                         ),
                         Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Row(
                               children: [
