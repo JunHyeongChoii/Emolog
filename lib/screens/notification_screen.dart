@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/notification_service.dart';
 
 class NotificationScreen extends StatefulWidget {
@@ -11,10 +12,40 @@ class NotificationScreen extends StatefulWidget {
 class _NotificationScreenState extends State<NotificationScreen> {
   bool _isEnabled = false;
   TimeOfDay _selectedTime = const TimeOfDay(hour: 21, minute: 0);
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  // 저장된 알림 설정 불러오기
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isEnabled = prefs.getBool('notification_enabled') ?? false;
+    final hour = prefs.getInt('notification_hour') ?? 21;
+    final minute = prefs.getInt('notification_minute') ?? 0;
+
+    setState(() {
+      _isEnabled = isEnabled;
+      _selectedTime = TimeOfDay(hour: hour, minute: minute);
+      _isLoading = false;
+    });
+  }
+
+  // 알림 설정 저장
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('notification_enabled', _isEnabled);
+    await prefs.setInt('notification_hour', _selectedTime.hour);
+    await prefs.setInt('notification_minute', _selectedTime.minute);
+  }
 
   // 알림 토글
   Future<void> _toggleNotification(bool value) async {
     setState(() => _isEnabled = value);
+    await _saveSettings();
 
     if (value) {
       await NotificationService().scheduleDailyNotification(
@@ -60,6 +91,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     if (picked != null) {
       setState(() => _selectedTime = picked);
+      await _saveSettings();
+
       if (_isEnabled) {
         await NotificationService().scheduleDailyNotification(
           hour: picked.hour,
@@ -81,6 +114,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -251,7 +290,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
             const SizedBox(height: 24),
 
-            // 안내 문구
             const Text(
               '※ 알림은 앱을 완전히 종료해도 작동해요.\n※ 기기 설정에서 앱 알림이 허용되어 있어야 해요.',
               style: TextStyle(fontSize: 12, color: Colors.grey),
