@@ -376,8 +376,16 @@ class _MonthlyEmotionScreenState extends State<MonthlyEmotionScreen> {
     final filtered = entries
         .where((e) => !e.isEmpty)
         .toList()
-        .reversed
-        .toList();
+        ..sort((a, b) {
+        // 날짜 비교 (내림차순: 최신 날짜가 위로)
+        if (a.date == b.date) {
+          // 날짜가 같다면 생성 시간 비교
+          return a.createdAt.compareTo(b.createdAt);
+        }
+        return a.date.compareTo(b.date);
+      });
+        // .reversed
+        // .toList();
 
     if (filtered.isEmpty) {
       return const Center(

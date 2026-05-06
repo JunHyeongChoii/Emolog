@@ -83,7 +83,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                 );
               }
-//
+              //날짜 그룹화 및 정렬
               final entries = emotionBox.values.toList()
                 ..sort((a, b) {
                   // 날짜가 같으면 생성 시간(createdAt) 비교, 다르면 날짜(date) 비교
