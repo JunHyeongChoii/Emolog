@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/ledger_entry.dart';
 
 class AddLedgerScreen extends StatefulWidget {
-  const AddLedgerScreen({super.key});
+  final String? initialDate; // 초기 날짜 (선택)
+
+  const AddLedgerScreen({super.key, this.initialDate});
 
   @override
   State<AddLedgerScreen> createState() => _AddLedgerScreenState();
@@ -16,7 +17,7 @@ class _AddLedgerScreenState extends State<AddLedgerScreen> {
   final TextEditingController _memoController = TextEditingController();
   String _selectedCategory = '식비';
   String _selectedEmoji = '🍔';
-  DateTime _selectedDate = DateTime.now();
+  late DateTime _selectedDate;
   bool _isUpdating = false;
 
   final List<Map<String, String>> _expenseCategories = [
@@ -41,10 +42,31 @@ class _AddLedgerScreenState extends State<AddLedgerScreen> {
   List<Map<String, String>> get _categories =>
       _type == 'expense' ? _expenseCategories : _incomeCategories;
 
+  // 천 단위 콤마
+  String _addComma(int number) {
+    return number.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (m) => '${m[1]},',
+    );
+  }
+
   @override
   void initState() {
     super.initState();
-    // 금액 입력 시 천 단위 콤마 자동 추가
+
+    // initialDate가 있으면 해당 날짜로, 없으면 오늘로
+    if (widget.initialDate != null) {
+      final parts = widget.initialDate!.split('-');
+      _selectedDate = DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      );
+    } else {
+      _selectedDate = DateTime.now();
+    }
+
+    // 금액 천 단위 콤마
     _amountController.addListener(() {
       if (_isUpdating) return;
       _isUpdating = true;
@@ -65,14 +87,6 @@ class _AddLedgerScreenState extends State<AddLedgerScreen> {
       }
       _isUpdating = false;
     });
-  }
-
-  // 천 단위 콤마 추가
-  String _addComma(int number) {
-    return number.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]},',
-    );
   }
 
   @override
@@ -268,7 +282,6 @@ class _AddLedgerScreenState extends State<AddLedgerScreen> {
             TextField(
               controller: _amountController,
               keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: InputDecoration(
                 hintText: '0',
                 hintStyle: const TextStyle(color: Colors.grey),

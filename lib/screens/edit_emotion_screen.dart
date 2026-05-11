@@ -552,7 +552,10 @@ class _EditEmotionScreenState extends State<EditEmotionScreen> {
                 GestureDetector(
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const AddLedgerScreen()),
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          AddLedgerScreen(initialDate: widget.entry.date),
+                    ),
                   ),
                   child: Container(
                     width: 28,
