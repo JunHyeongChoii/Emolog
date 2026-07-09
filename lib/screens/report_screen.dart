@@ -61,17 +61,14 @@ class _ReportScreenState extends State<ReportScreen> {
     final todoBox = Hive.box<TodoEntry>('todos');
     final ledgerBox = Hive.box<LedgerEntry>('ledger');
 
-    // 해당 월 감정 기록 (빈 항목 제외)
     final emotions = emotionBox.values
         .where((e) => e.date.startsWith(_monthPrefix) && !e.isEmpty)
         .toList();
 
-    // 해당 월 할일
     final todos = todoBox.values
         .where((t) => t.date.startsWith(_monthPrefix))
         .toList();
 
-    // 해당 월 가계부
     final ledgers = ledgerBox.values
         .where((l) => l.date.startsWith(_monthPrefix))
         .toList();
@@ -82,16 +79,14 @@ class _ReportScreenState extends State<ReportScreen> {
         ? 0.0
         : emotions.fold(0, (sum, e) => sum + e.score) / totalDays;
 
-    // 감정별 횟수
     final Map<int, int> scoreCounts = {};
     for (var e in emotions) {
       scoreCounts[e.score] = (scoreCounts[e.score] ?? 0) + 1;
     }
 
-    // 긍정적인 날 (4~5점)
     final positiveDays = (scoreCounts[4] ?? 0) + (scoreCounts[5] ?? 0);
 
-    // 종합 평가 메시지
+    // 종합 평가
     String heroEmoji;
     String heroTitle;
     String heroDesc;
@@ -121,7 +116,83 @@ class _ReportScreenState extends State<ReportScreen> {
           '평균 감정 점수 ${avgScore.toStringAsFixed(1)}점이에요.\n자신을 위한 시간을 가져보세요.';
     }
 
-    // 스트레스 날 vs 일반 날 지출 비교
+    // ===== Phase 1: 감정 원인 태그 분석 =====
+    // 힘든 날(1~2점) 태그 집계
+    final Map<String, int> hardTagCounts = {};
+    for (var e in emotions.where((e) => e.score <= 2)) {
+      for (var tag in e.tags) {
+        hardTagCounts[tag] = (hardTagCounts[tag] ?? 0) + 1;
+      }
+    }
+    // 좋은 날(4~5점) 태그 집계
+    final Map<String, int> goodTagCounts = {};
+    for (var e in emotions.where((e) => e.score >= 4)) {
+      for (var tag in e.tags) {
+        goodTagCounts[tag] = (goodTagCounts[tag] ?? 0) + 1;
+      }
+    }
+
+    String tagInsight = '';
+    if (hardTagCounts.isNotEmpty) {
+      final topHard = hardTagCounts.entries.reduce(
+        (a, b) => a.value >= b.value ? a : b,
+      );
+      tagInsight =
+          '이번 달 나를 힘들게 한 것 1위는 \'${topHard.key}\'(${topHard.value}회)예요.';
+      if (goodTagCounts.isNotEmpty) {
+        final topGood = goodTagCounts.entries.reduce(
+          (a, b) => a.value >= b.value ? a : b,
+        );
+        tagInsight += ' 반대로 기분 좋은 날에는 \'${topGood.key}\'이(가) 함께한 날이 많았어요.';
+      }
+    } else if (goodTagCounts.isNotEmpty) {
+      final topGood = goodTagCounts.entries.reduce(
+        (a, b) => a.value >= b.value ? a : b,
+      );
+      tagInsight =
+          '기분 좋은 날에 \'${topGood.key}\' 태그가 가장 많았어요(${topGood.value}회). 이 활동을 더 자주 해보세요!';
+    }
+
+    // ===== Phase 1: 후회 소비 인사이트 =====
+    final regretSpends = ledgers
+        .where((l) => l.type == 'expense' && l.spendMood == 1)
+        .toList();
+    final satisfySpends = ledgers
+        .where((l) => l.type == 'expense' && l.spendMood >= 3)
+        .toList();
+
+    String regretInsight = '';
+    if (regretSpends.isNotEmpty) {
+      final regretTotal = regretSpends.fold(0, (sum, l) => sum + l.amount);
+
+      // 후회 소비 중 스트레스 날(1~2점) 발생 비율
+      final stressDates = emotions
+          .where((e) => e.score <= 2)
+          .map((e) => e.date)
+          .toSet();
+      final regretOnStress = regretSpends
+          .where((l) => stressDates.contains(l.date))
+          .length;
+      final stressRatio = regretSpends.isEmpty
+          ? 0
+          : (regretOnStress / regretSpends.length * 100).toInt();
+
+      regretInsight =
+          '이번 달 후회 소비가 ${regretSpends.length}건, 총 ${_formatAmount(regretTotal)}원이에요.';
+      if (stressRatio >= 50 && stressDates.isNotEmpty) {
+        regretInsight +=
+            ' 후회 소비의 $stressRatio%가 감정 점수가 낮은 날 발생했어요. 힘든 날엔 결제 전에 한 번만 더 고민해보세요!';
+      } else if (satisfySpends.isNotEmpty) {
+        final satisfyTotal = satisfySpends.fold(0, (sum, l) => sum + l.amount);
+        regretInsight +=
+            ' 반면 만족 소비는 ${satisfySpends.length}건(${_formatAmount(satisfyTotal)}원)이었어요.';
+      }
+    } else if (satisfySpends.isNotEmpty) {
+      regretInsight =
+          '이번 달 후회 소비가 한 건도 없어요! 만족스러운 소비 ${satisfySpends.length}건을 기록했어요 👏';
+    }
+
+    // 스트레스 vs 일반 날 지출 비교
     String spendingInsight = '';
     if (emotions.isNotEmpty && ledgers.isNotEmpty) {
       final stressDates = emotions
@@ -134,22 +205,22 @@ class _ReportScreenState extends State<ReportScreen> {
           .toSet();
 
       int stressSpend = 0;
-      int stressCount = 0;
       int normalSpend = 0;
-      int normalCount = 0;
 
       for (var l in ledgers.where((l) => l.type == 'expense')) {
         if (stressDates.contains(l.date)) {
           stressSpend += l.amount;
-          stressCount++;
         } else if (normalDates.contains(l.date)) {
           normalSpend += l.amount;
-          normalCount++;
         }
       }
 
-      final avgStress = stressCount > 0 ? stressSpend / stressDates.length : 0;
-      final avgNormal = normalCount > 0 ? normalSpend / normalDates.length : 0;
+      final avgStress = stressDates.isEmpty
+          ? 0
+          : stressSpend / stressDates.length;
+      final avgNormal = normalDates.isEmpty
+          ? 0
+          : normalSpend / normalDates.length;
 
       if (stressDates.isNotEmpty && avgStress > avgNormal && avgNormal > 0) {
         final diff = ((avgStress - avgNormal) / avgNormal * 100).toInt();
@@ -160,7 +231,7 @@ class _ReportScreenState extends State<ReportScreen> {
       }
     }
 
-    // 할일 완료율과 감정 상관관계
+    // 할일 완료율과 감정
     String todoInsight = '';
     if (emotions.isNotEmpty && todos.isNotEmpty) {
       double highTodoAvgScore = 0;
@@ -196,7 +267,7 @@ class _ReportScreenState extends State<ReportScreen> {
       }
     }
 
-    // 요일별 감정 평균
+    // 요일별 감정
     final Map<int, List<int>> weekdayScores = {};
     for (var e in emotions) {
       final parts = e.date.split('-');
@@ -226,7 +297,21 @@ class _ReportScreenState extends State<ReportScreen> {
 
     // 다음 달 팁
     final List<Map<String, String>> tips = [];
-    if (spendingInsight.contains('충동 소비')) {
+    if (hardTagCounts.isNotEmpty) {
+      final topHard = hardTagCounts.entries.reduce(
+        (a, b) => a.value >= b.value ? a : b,
+      );
+      tips.add({
+        'title': '\'${topHard.key}\' 스트레스 관리하기',
+        'desc': '이번 달 가장 큰 스트레스 원인이었어요. 다음 달엔 이 부분에 여유를 만들어보세요.',
+      });
+    }
+    if (regretInsight.contains('낮은 날 발생')) {
+      tips.add({
+        'title': '힘든 날 결제 미루기',
+        'desc': '후회 소비 대부분이 스트레스 날에 일어났어요. 장바구니에 하루만 묵혀보세요!',
+      });
+    } else if (spendingInsight.contains('충동 소비')) {
       tips.add({
         'title': '스트레스 날 지출 줄이기',
         'desc': '감정 점수가 낮은 날엔 큰 지출을 미뤄보세요. 기분이 나아진 후 결정하면 후회가 줄어요!',
@@ -248,7 +333,7 @@ class _ReportScreenState extends State<ReportScreen> {
         });
       }
     }
-    if (avgScore < 3.0) {
+    if (avgScore < 3.0 && totalDays > 0) {
       tips.add({
         'title': '나를 위한 시간 만들기',
         'desc': '이번 달 힘드셨죠? 좋아하는 것을 하며 나를 위한 시간을 가져보세요.',
@@ -355,7 +440,6 @@ class _ReportScreenState extends State<ReportScreen> {
             const SizedBox(height: 16),
 
             if (totalDays > 0) ...[
-              // 인사이트
               const Text(
                 '이달의 인사이트',
                 style: TextStyle(
@@ -365,6 +449,19 @@ class _ReportScreenState extends State<ReportScreen> {
                 ),
               ),
               const SizedBox(height: 8),
+
+              // Phase 1: 감정 원인 태그
+              if (tagInsight.isNotEmpty)
+                _insightCard('🏷️', '나의 감정 원인', tagInsight, false),
+
+              // Phase 1: 후회 소비
+              if (regretInsight.isNotEmpty)
+                _insightCard(
+                  '💭',
+                  '만족 vs 후회 소비',
+                  regretInsight,
+                  regretInsight.contains('낮은 날 발생'),
+                ),
 
               // 지출 인사이트
               if (spendingInsight.isNotEmpty)

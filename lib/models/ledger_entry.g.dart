@@ -23,13 +23,14 @@ class LedgerEntryAdapter extends TypeAdapter<LedgerEntry> {
       ..category = fields[3] as String
       ..categoryEmoji = fields[4] as String
       ..memo = fields[5] as String
-      ..createdAt = fields[6] as String;
+      ..createdAt = fields[6] as String
+      ..spendMood = fields[7] as int;
   }
 
   @override
   void write(BinaryWriter writer, LedgerEntry obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.date)
       ..writeByte(1)
@@ -43,7 +44,9 @@ class LedgerEntryAdapter extends TypeAdapter<LedgerEntry> {
       ..writeByte(5)
       ..write(obj.memo)
       ..writeByte(6)
-      ..write(obj.createdAt);
+      ..write(obj.createdAt)
+      ..writeByte(7)
+      ..write(obj.spendMood);
   }
 
   @override

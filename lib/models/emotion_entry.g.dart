@@ -16,21 +16,21 @@ class EmotionEntryAdapter extends TypeAdapter<EmotionEntry> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return EmotionEntry(
-      isEmpty: fields[6] as bool,
-    )
+    return EmotionEntry()
       ..date = fields[0] as String
       ..score = fields[1] as int
       ..emoji = fields[2] as String
       ..memo = fields[3] as String
       ..createdAt = fields[4] as String
-      ..diary = fields[5] as String;
+      ..diary = fields[5] as String
+      ..isEmpty = fields[6] as bool
+      ..tags = (fields[7] as List).cast<String>();
   }
 
   @override
   void write(BinaryWriter writer, EmotionEntry obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.date)
       ..writeByte(1)
@@ -44,7 +44,9 @@ class EmotionEntryAdapter extends TypeAdapter<EmotionEntry> {
       ..writeByte(5)
       ..write(obj.diary)
       ..writeByte(6)
-      ..write(obj.isEmpty);
+      ..write(obj.isEmpty)
+      ..writeByte(7)
+      ..write(obj.tags);
   }
 
   @override

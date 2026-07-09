@@ -3,7 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/ledger_entry.dart';
 
 class AddLedgerScreen extends StatefulWidget {
-  final String? initialDate; // 초기 날짜 (선택)
+  final String? initialDate;
 
   const AddLedgerScreen({super.key, this.initialDate});
 
@@ -19,6 +19,15 @@ class _AddLedgerScreenState extends State<AddLedgerScreen> {
   String _selectedEmoji = '🍔';
   late DateTime _selectedDate;
   bool _isUpdating = false;
+
+  // Phase 1: 소비 감정 (0=미선택, 1=후회, 2=그저그럼, 3=만족, 4=최고)
+  int _spendMood = 0;
+  final List<Map<String, dynamic>> _moodOptions = [
+    {'value': 1, 'emoji': '😩', 'label': '후회'},
+    {'value': 2, 'emoji': '😐', 'label': '그저그럼'},
+    {'value': 3, 'emoji': '😊', 'label': '만족'},
+    {'value': 4, 'emoji': '🤩', 'label': '최고'},
+  ];
 
   final List<Map<String, String>> _expenseCategories = [
     {'name': '식비', 'emoji': '🍔'},
@@ -42,7 +51,6 @@ class _AddLedgerScreenState extends State<AddLedgerScreen> {
   List<Map<String, String>> get _categories =>
       _type == 'expense' ? _expenseCategories : _incomeCategories;
 
-  // 천 단위 콤마
   String _addComma(int number) {
     return number.toString().replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
@@ -54,7 +62,6 @@ class _AddLedgerScreenState extends State<AddLedgerScreen> {
   void initState() {
     super.initState();
 
-    // initialDate가 있으면 해당 날짜로, 없으면 오늘로
     if (widget.initialDate != null) {
       final parts = widget.initialDate!.split('-');
       _selectedDate = DateTime(
@@ -66,7 +73,6 @@ class _AddLedgerScreenState extends State<AddLedgerScreen> {
       _selectedDate = DateTime.now();
     }
 
-    // 금액 천 단위 콤마
     _amountController.addListener(() {
       if (_isUpdating) return;
       _isUpdating = true;
@@ -134,6 +140,7 @@ class _AddLedgerScreenState extends State<AddLedgerScreen> {
       ..category = _selectedCategory
       ..categoryEmoji = _selectedEmoji
       ..memo = _memoController.text
+      ..spendMood = _type == 'expense' ? _spendMood : 0
       ..createdAt =
           '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
@@ -360,6 +367,93 @@ class _AddLedgerScreenState extends State<AddLedgerScreen> {
               }).toList(),
             ),
 
+            // Phase 1: 소비 감정 (지출일 때만 표시)
+            if (_type == 'expense') ...[
+              const SizedBox(height: 24),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF8EE),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFF5C97B),
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '💭 이 지출, 기분이 어때요?',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF8A5A00),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      '선택하면 만족/후회 소비 리포트를 볼 수 있어요',
+                      style: TextStyle(fontSize: 11, color: Color(0xFFB08030)),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: _moodOptions.map((m) {
+                        final isSelected = _spendMood == m['value'];
+                        return GestureDetector(
+                          onTap: () => setState(() {
+                            // 같은 걸 다시 누르면 해제
+                            _spendMood = isSelected ? 0 : m['value'] as int;
+                          }),
+                          child: Column(
+                            children: [
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isSelected
+                                      ? const Color(0xFFFCEFD4)
+                                      : Colors.transparent,
+                                  border: isSelected
+                                      ? Border.all(
+                                          color: const Color(0xFFF5A623),
+                                          width: 2,
+                                        )
+                                      : null,
+                                ),
+                                child: Text(
+                                  m['emoji'] as String,
+                                  style: TextStyle(
+                                    fontSize: isSelected ? 30 : 24,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                m['label'] as String,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: isSelected
+                                      ? const Color(0xFF8A5A00)
+                                      : Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             const SizedBox(height: 24),
 
             // 메모
@@ -378,7 +472,6 @@ class _AddLedgerScreenState extends State<AddLedgerScreen> {
               maxLength: 30,
               decoration: InputDecoration(
                 hintText: '',
-                hintStyle: const TextStyle(color: Colors.grey),
                 filled: true,
                 fillColor: const Color(0xFFF5F5F5),
                 border: OutlineInputBorder(
