@@ -16,21 +16,24 @@ class TodoEntryAdapter extends TypeAdapter<TodoEntry> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return TodoEntry(
-      repeatType: fields[4] as String,
-      repeatDays: (fields[5] as List).cast<int>(),
-      repeatDay: fields[6] as int,
-    )
+    return TodoEntry()
       ..title = fields[0] as String
       ..isDone = fields[1] as bool
       ..date = fields[2] as String
-      ..createdAt = fields[3] as String;
+      ..createdAt = fields[3] as String
+      ..repeatType = fields[4] as String
+      ..repeatDays = (fields[5] as List).cast<int>()
+      ..repeatDay = fields[6] as int
+      ..isSetType = fields[7] as bool
+      ..repsPerSet = fields[8] as int
+      ..targetSets = fields[9] as int
+      ..completedSets = fields[10] as int;
   }
 
   @override
   void write(BinaryWriter writer, TodoEntry obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.title)
       ..writeByte(1)
@@ -44,7 +47,15 @@ class TodoEntryAdapter extends TypeAdapter<TodoEntry> {
       ..writeByte(5)
       ..write(obj.repeatDays)
       ..writeByte(6)
-      ..write(obj.repeatDay);
+      ..write(obj.repeatDay)
+      ..writeByte(7)
+      ..write(obj.isSetType)
+      ..writeByte(8)
+      ..write(obj.repsPerSet)
+      ..writeByte(9)
+      ..write(obj.targetSets)
+      ..writeByte(10)
+      ..write(obj.completedSets);
   }
 
   @override

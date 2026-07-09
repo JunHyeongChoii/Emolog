@@ -24,18 +24,37 @@ class TodoScreen extends StatelessWidget {
     todo.save();
   }
 
-  Future<void> _confirmDelete(
-      BuildContext context, TodoEntry todo) async {
+  // 세트 +1
+  void _addSet(TodoEntry todo) {
+    if (todo.completedSets < todo.targetSets) {
+      todo.completedSets++;
+      if (todo.completedSets >= todo.targetSets) {
+        todo.isDone = true;
+      }
+      todo.save();
+    }
+  }
+
+  // 동그라미 탭 → 그 위치까지 되돌리기
+  // index는 0부터 시작. index번째 ●를 누르면 completedSets = index
+  void _setSetCount(TodoEntry todo, int index) {
+    todo.completedSets = index;
+    todo.isDone = todo.completedSets >= todo.targetSets;
+    todo.save();
+  }
+
+  Future<void> _confirmDelete(BuildContext context, TodoEntry todo) async {
     final bool isRepeat =
         todo.repeatType == 'weekly' || todo.repeatType == 'monthly';
 
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
-        title: const Text('할 일 삭제',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          '할 일 삭제',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: Text(
           isRepeat
               ? '오늘 포함 미래 반복 항목을 모두 삭제할까요?\n(과거 기록은 유지돼요)'
@@ -44,15 +63,14 @@ class TodoScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('취소',
-                style: TextStyle(color: Colors.grey)),
+            child: const Text('취소', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('삭제',
-                style: TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold)),
+            child: const Text(
+              '삭제',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -65,10 +83,12 @@ class TodoScreen extends StatelessWidget {
         final box = Hive.box<TodoEntry>('todos');
         final today = _today;
         final toDelete = box.values
-            .where((t) =>
-                t.title == todo.title &&
-                t.repeatType == todo.repeatType &&
-                t.date.compareTo(today) >= 0)
+            .where(
+              (t) =>
+                  t.title == todo.title &&
+                  t.repeatType == todo.repeatType &&
+                  t.date.compareTo(today) >= 0,
+            )
             .toList();
         for (final t in toDelete) {
           await t.delete();
@@ -80,22 +100,18 @@ class TodoScreen extends StatelessWidget {
   String _repeatLabel(TodoEntry todo) {
     if (todo.repeatType == 'weekly') {
       final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
-      return todo.repeatDays
-          .map((d) => weekdays[d - 1])
-          .join('·');
+      return todo.repeatDays.map((d) => weekdays[d - 1]).join('·');
     } else if (todo.repeatType == 'monthly') {
       return '매월 ${todo.repeatDay}일';
     }
     return '오늘만';
   }
 
-  void _showEmotionDetail(
-      BuildContext context, EmotionEntry entry) {
+  void _showEmotionDetail(BuildContext context, EmotionEntry entry) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -111,37 +127,37 @@ class TodoScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text('오늘 감정 기록',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold)),
+            const Text(
+              '오늘 감정 기록',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 16),
-            Text(entry.emoji,
-                style: const TextStyle(fontSize: 48)),
+            Text(entry.emoji, style: const TextStyle(fontSize: 48)),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
-                  5,
-                  (i) => Container(
-                        width: 10,
-                        height: 10,
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 3),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: i < entry.score
-                              ? const Color(0xFF534AB7)
-                              : Colors.grey.shade300,
-                        ),
-                      )),
+                5,
+                (i) => Container(
+                  width: 10,
+                  height: 10,
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: i < entry.score
+                        ? const Color(0xFF534AB7)
+                        : Colors.grey.shade300,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 12),
             if (entry.memo.isNotEmpty)
-              Text(entry.memo,
-                  style: const TextStyle(
-                      fontSize: 15, color: Colors.black87),
-                  textAlign: TextAlign.center),
+              Text(
+                entry.memo,
+                style: const TextStyle(fontSize: 15, color: Colors.black87),
+                textAlign: TextAlign.center,
+              ),
             if (entry.diary.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(
@@ -151,17 +167,21 @@ class TodoScreen extends StatelessWidget {
                   color: const Color(0xFFF8F8FC),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(entry.diary,
-                    style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.black87,
-                        height: 1.6)),
+                child: Text(
+                  entry.diary,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black87,
+                    height: 1.6,
+                  ),
+                ),
               ),
             ],
             const SizedBox(height: 8),
-            Text('${entry.createdAt} 기록',
-                style: const TextStyle(
-                    fontSize: 11, color: Colors.grey)),
+            Text(
+              '${entry.createdAt} 기록',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
           ],
         ),
       ),
@@ -176,29 +196,26 @@ class TodoScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         title: const Text(
           '오늘 할 일',
-          style: TextStyle(
-              fontWeight: FontWeight.bold, fontSize: 22),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_circle_outline_rounded,
-                color: Color(0xFF534AB7)),
+            icon: const Icon(
+              Icons.add_circle_outline_rounded,
+              color: Color(0xFF534AB7),
+            ),
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => AddTodoScreen(date: _today),
-              ),
+              MaterialPageRoute(builder: (_) => AddTodoScreen(date: _today)),
             ),
           ),
         ],
       ),
       body: ValueListenableBuilder(
-        valueListenable:
-            Hive.box<TodoEntry>('todos').listenable(),
+        valueListenable: Hive.box<TodoEntry>('todos').listenable(),
         builder: (context, todoBox, _) {
           return ValueListenableBuilder(
-            valueListenable:
-                Hive.box<EmotionEntry>('emotions').listenable(),
+            valueListenable: Hive.box<EmotionEntry>('emotions').listenable(),
             builder: (context, emotionBox, _) {
               final todos = todoBox.values
                   .where((t) => t.date == _today)
@@ -212,414 +229,503 @@ class TodoScreen extends StatelessWidget {
                   : null;
 
               final total = todos.length;
-              final done =
-                  todos.where((t) => t.isDone).length;
-              final progress =
-                  total == 0 ? 0.0 : done / total;
+              final done = todos.where((t) => t.isDone).length;
+              final progress = total == 0 ? 0.0 : done / total;
 
-              return Column(
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 children: [
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(
-                          16, 8, 16, 0),
-                      children: [
+                  // 날짜
+                  Text(
+                    _todayLabel,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
 
-                        // 날짜
-                        Text(
-                          _todayLabel,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
+                  // 루틴 보기 버튼
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RoutineScreen()),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8F8FC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.repeat_rounded,
+                            size: 18,
+                            color: Color(0xFF534AB7),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // 루틴 보기 버튼
-                        GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  const RoutineScreen(),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '등록된 루틴 보기',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF534AB7),
+                                  ),
+                                ),
+                                Text(
+                                  '매주·매월 반복 할 일 관리',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: Color(0xFF534AB7),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // 오늘 감정
+                  const Text(
+                    '오늘 감정',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  latestEmotion != null
+                      ? GestureDetector(
+                          onTap: () =>
+                              _showEmotionDetail(context, latestEmotion),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 10),
+                            padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF8F8FC),
-                              borderRadius:
-                                  BorderRadius.circular(12),
-                              border: Border.all(
-                                  color: Colors.grey.shade200),
+                              color: const Color(0xFFEEEDFE),
+                              borderRadius: BorderRadius.circular(14),
                             ),
                             child: Row(
                               children: [
-                                const Icon(
-                                    Icons.repeat_rounded,
-                                    size: 18,
-                                    color: Color(0xFF534AB7)),
-                                const SizedBox(width: 10),
-                                const Expanded(
+                                Text(
+                                  latestEmotion.emoji,
+                                  style: const TextStyle(fontSize: 30),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        '등록된 루틴 보기',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight:
-                                              FontWeight.w500,
-                                          color:
-                                              Color(0xFF534AB7),
+                                      Row(
+                                        children: List.generate(
+                                          5,
+                                          (i) => Container(
+                                            width: 7,
+                                            height: 7,
+                                            margin: const EdgeInsets.only(
+                                              right: 3,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: i < latestEmotion.score
+                                                  ? const Color(0xFF534AB7)
+                                                  : const Color(0xFFAFA9EC),
+                                            ),
+                                          ),
                                         ),
                                       ),
+                                      const SizedBox(height: 3),
                                       Text(
-                                        '매주·매월 반복 할 일 관리',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.grey,
+                                        latestEmotion.memo.isEmpty
+                                            ? '메모 없음'
+                                            : latestEmotion.memo,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFF3C3489),
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
                                 const Icon(
-                                    Icons.chevron_right_rounded,
-                                    color: Color(0xFF534AB7)),
+                                  Icons.chevron_right_rounded,
+                                  color: Color(0xFF534AB7),
+                                ),
                               ],
+                            ),
+                          ),
+                        )
+                      : Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8F8FC),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              '아직 오늘 감정을 기록하지 않았어요',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
                             ),
                           ),
                         ),
 
-                        const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
-                        // 오늘 감정 섹션
-                        const Text('오늘 감정',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey,
-                              letterSpacing: 0.5,
-                            )),
-                        const SizedBox(height: 8),
+                  // 할 일
+                  const Text(
+                    '할 일',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
 
-                        latestEmotion != null
-                            ? GestureDetector(
-                                onTap: () =>
-                                    _showEmotionDetail(
-                                        context, latestEmotion),
-                                child: Container(
-                                  padding:
-                                      const EdgeInsets.all(14),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        const Color(0xFFEEEDFE),
-                                    borderRadius:
-                                        BorderRadius.circular(
-                                            14),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Text(latestEmotion.emoji,
-                                          style: const TextStyle(
-                                              fontSize: 30)),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment
-                                                  .start,
-                                          children: [
-                                            Row(
-                                              children: List
-                                                  .generate(
-                                                      5,
-                                                      (i) =>
-                                                          Container(
-                                                            width:
-                                                                7,
-                                                            height:
-                                                                7,
-                                                            margin: const EdgeInsets
-                                                                .only(
-                                                                right:
-                                                                    3),
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              shape:
-                                                                  BoxShape.circle,
-                                                              color: i < latestEmotion.score
-                                                                  ? const Color(0xFF534AB7)
-                                                                  : const Color(0xFFAFA9EC),
-                                                            ),
-                                                          )),
-                                            ),
-                                            const SizedBox(
-                                                height: 3),
-                                            Text(
-                                              latestEmotion
-                                                      .memo.isEmpty
-                                                  ? '메모 없음'
-                                                  : latestEmotion
-                                                      .memo,
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                color: latestEmotion
-                                                        .memo
-                                                        .isEmpty
-                                                    ? const Color(
-                                                            0xFF534AB7)
-                                                        .withValues(
-                                                            alpha:
-                                                                0.6)
-                                                    : const Color(
-                                                        0xFF3C3489),
-                                              ),
-                                            ),
-                                            const SizedBox(
-                                                height: 2),
-                                            Text(
-                                                '${latestEmotion.createdAt} 기록',
-                                                style: const TextStyle(
-                                                    fontSize: 10,
-                                                    color: Color(
-                                                        0xFF534AB7))),
-                                          ],
-                                        ),
-                                      ),
-                                      const Icon(
-                                          Icons
-                                              .chevron_right_rounded,
-                                          color:
-                                              Color(0xFF534AB7)),
-                                    ],
-                                  ),
-                                ),
+                  if (total > 0) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '$done/$total개 완료',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        Text(
+                          '${(progress * 100).toInt()}%',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF534AB7),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        backgroundColor: Colors.grey.shade200,
+                        color: const Color(0xFF534AB7),
+                        minHeight: 6,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  if (todos.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Text(
+                          '오늘 할 일을 추가해보세요!',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                      ),
+                    )
+                  else
+                    ...todos.map(
+                      (todo) => Dismissible(
+                        key: Key(todo.key.toString()),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.only(right: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade400,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.centerRight,
+                          child: const Icon(Icons.delete, color: Colors.white),
+                        ),
+                        confirmDismiss: (_) async {
+                          await _confirmDelete(context, todo);
+                          return false;
+                        },
+                        child: todo.isSetType
+                            ? _SetCard(
+                                todo: todo,
+                                repeatLabel: _repeatLabel(todo),
+                                onAddSet: () => _addSet(todo),
+                                onDotTap: (i) => _setSetCount(todo, i),
                               )
                             : Container(
-                                padding:
-                                    const EdgeInsets.all(14),
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
                                 decoration: BoxDecoration(
-                                  color:
-                                      const Color(0xFFF8F8FC),
-                                  borderRadius:
-                                      BorderRadius.circular(14),
-                                  border: Border.all(
-                                      color:
-                                          Colors.grey.shade200),
+                                  color: const Color(0xFFF8F8FC),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Center(
-                                  child: Text(
-                                    '아직 오늘 감정을 기록하지 않았어요',
-                                    style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey),
-                                  ),
-                                ),
-                              ),
-
-                        const SizedBox(height: 20),
-
-                        // 할 일 섹션
-                        const Text('할 일',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey,
-                              letterSpacing: 0.5,
-                            )),
-                        const SizedBox(height: 8),
-
-                        if (total > 0) ...[
-                          Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('$done개 완료',
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey)),
-                              Text(
-                                  '${(progress * 100).toInt()}%',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF534AB7),
-                                    fontWeight: FontWeight.bold,
-                                  )),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          ClipRRect(
-                            borderRadius:
-                                BorderRadius.circular(10),
-                            child: LinearProgressIndicator(
-                              value: progress,
-                              backgroundColor:
-                                  Colors.grey.shade200,
-                              color: const Color(0xFF534AB7),
-                              minHeight: 6,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-
-                        if (todos.isEmpty)
-                          const Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                  vertical: 20),
-                              child: Text(
-                                '오늘 할 일을 추가해보세요!',
-                                style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey),
-                              ),
-                            ),
-                          )
-                        else
-                          ...todos.map((todo) => Dismissible(
-                                key: Key(
-                                    todo.key.toString()),
-                                direction:
-                                    DismissDirection.endToStart,
-                                background: Container(
-                                  margin: const EdgeInsets.only(
-                                      bottom: 8),
-                                  padding: const EdgeInsets.only(
-                                      right: 20),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.shade400,
-                                    borderRadius:
-                                        BorderRadius.circular(
-                                            12),
-                                  ),
-                                  alignment:
-                                      Alignment.centerRight,
-                                  child: const Icon(
-                                      Icons.delete,
-                                      color: Colors.white),
-                                ),
-                                confirmDismiss: (_) async {
-                                  await _confirmDelete(
-                                      context, todo);
-                                  return false;
-                                },
-                                child: Container(
-                                  margin: const EdgeInsets.only(
-                                      bottom: 8),
-                                  padding:
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        const Color(0xFFF8F8FC),
-                                    borderRadius:
-                                        BorderRadius.circular(
-                                            12),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      GestureDetector(
-                                        onTap: () =>
-                                            _toggleDone(todo),
-                                        child: AnimatedContainer(
-                                          duration: const Duration(
-                                              milliseconds: 200),
-                                          width: 24,
-                                          height: 24,
-                                          decoration:
-                                              BoxDecoration(
-                                            shape:
-                                                BoxShape.circle,
+                                child: Row(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () => _toggleDone(todo),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 200,
+                                        ),
+                                        width: 24,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: todo.isDone
+                                              ? const Color(0xFF534AB7)
+                                              : Colors.transparent,
+                                          border: Border.all(
                                             color: todo.isDone
-                                                ? const Color(
-                                                    0xFF534AB7)
-                                                : Colors
-                                                    .transparent,
-                                            border: Border.all(
-                                              color: todo.isDone
-                                                  ? const Color(
-                                                      0xFF534AB7)
-                                                  : Colors.grey
-                                                      .shade400,
-                                              width: 2,
-                                            ),
+                                                ? const Color(0xFF534AB7)
+                                                : Colors.grey.shade400,
+                                            width: 2,
                                           ),
-                                          child: todo.isDone
-                                              ? const Icon(
-                                                  Icons.check,
-                                                  size: 14,
-                                                  color: Colors
-                                                      .white)
+                                        ),
+                                        child: todo.isDone
+                                            ? const Icon(
+                                                Icons.check,
+                                                size: 14,
+                                                color: Colors.white,
+                                              )
+                                            : null,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        todo.title,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          color: todo.isDone
+                                              ? Colors.grey
+                                              : Colors.black87,
+                                          decoration: todo.isDone
+                                              ? TextDecoration.lineThrough
                                               : null,
                                         ),
                                       ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          todo.title,
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            color: todo.isDone
-                                                ? Colors.grey
-                                                : Colors.black87,
-                                            decoration: todo
-                                                    .isDone
-                                                ? TextDecoration
-                                                    .lineThrough
-                                                : null,
-                                          ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 7,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: todo.repeatType == 'once'
+                                            ? const Color(0xFFE1F5EE)
+                                            : const Color(0xFFEEEDFE),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        _repeatLabel(todo),
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w500,
+                                          color: todo.repeatType == 'once'
+                                              ? const Color(0xFF085041)
+                                              : const Color(0xFF534AB7),
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets
-                                            .symmetric(
-                                            horizontal: 7,
-                                            vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: todo.repeatType ==
-                                                  'once'
-                                              ? const Color(
-                                                  0xFFE1F5EE)
-                                              : const Color(
-                                                  0xFFEEEDFE),
-                                          borderRadius:
-                                              BorderRadius
-                                                  .circular(6),
-                                        ),
-                                        child: Text(
-                                          _repeatLabel(todo),
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight:
-                                                FontWeight.w500,
-                                            color: todo.repeatType ==
-                                                    'once'
-                                                ? const Color(
-                                                    0xFF085041)
-                                                : const Color(
-                                                    0xFF534AB7),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              )),
-                      ],
+                              ),
+                      ),
                     ),
-                  ),
                 ],
               );
             },
           );
         },
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 세트 기록 카드 위젯
+// ==========================================
+class _SetCard extends StatelessWidget {
+  final TodoEntry todo;
+  final String repeatLabel;
+  final VoidCallback onAddSet;
+  final Function(int) onDotTap;
+
+  const _SetCard({
+    required this.todo,
+    required this.repeatLabel,
+    required this.onAddSet,
+    required this.onDotTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isComplete = todo.completedSets >= todo.targetSets;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F8FC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isComplete ? const Color(0xFFB7E4D0) : const Color(0xFFEEEDFE),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 상단: 제목 + 카운트
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      todo.title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: isComplete ? Colors.grey : Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      '${todo.repsPerSet}개씩 ${todo.targetSets}세트',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                isComplete
+                    ? '${todo.completedSets}/${todo.targetSets} ✓'
+                    : '${todo.completedSets}/${todo.targetSets}',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: isComplete
+                      ? const Color(0xFF0F6E56)
+                      : const Color(0xFF534AB7),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // 동그라미 (탭하면 그 위치까지 되돌리기)
+          Row(
+            children: [
+              ...List.generate(todo.targetSets, (i) {
+                final filled = i < todo.completedSets;
+                return GestureDetector(
+                  onTap: filled ? () => onDotTap(i) : null,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 22,
+                    height: 22,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: filled
+                          ? (isComplete
+                                ? const Color(0xFF0F6E56)
+                                : const Color(0xFF534AB7))
+                          : Colors.transparent,
+                      border: Border.all(
+                        color: filled
+                            ? (isComplete
+                                  ? const Color(0xFF0F6E56)
+                                  : const Color(0xFF534AB7))
+                            : const Color(0xFFAFA9EC),
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: todo.repeatType == 'once'
+                      ? const Color(0xFFE1F5EE)
+                      : const Color(0xFFEEEDFE),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  repeatLabel,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: todo.repeatType == 'once'
+                        ? const Color(0xFF085041)
+                        : const Color(0xFF534AB7),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // 세트 완료 버튼
+          SizedBox(
+            width: double.infinity,
+            height: 40,
+            child: ElevatedButton(
+              onPressed: isComplete ? null : onAddSet,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF534AB7),
+                disabledBackgroundColor: const Color(0xFFE1F5EE),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                isComplete ? '오늘 완료! 🎉' : '＋ 1세트 완료 (${todo.repsPerSet}개)',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: isComplete ? const Color(0xFF085041) : Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
