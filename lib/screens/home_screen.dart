@@ -32,14 +32,10 @@ String? _computeWeeklyInsight(
   final weekLedgers = ledgers.where((l) => last7Strs.contains(l.date)).toList();
   final weekTodos = todos.where((t) => last7Strs.contains(t.date)).toList();
 
-  final stressDates = weekEmotions
-      .where((e) => e.score <= 2)
-      .map((e) => e.date)
-      .toSet();
-  final normalDates = weekEmotions
-      .where((e) => e.score >= 3)
-      .map((e) => e.date)
-      .toSet();
+  final stressDates =
+      weekEmotions.where((e) => e.score <= 2).map((e) => e.date).toSet();
+  final normalDates =
+      weekEmotions.where((e) => e.score >= 3).map((e) => e.date).toSet();
 
   // 1) 스트레스 날 vs 평소 지출 비교
   int stressSpend = 0;
@@ -65,9 +61,8 @@ String? _computeWeeklyInsight(
       .where((l) => l.type == 'expense' && l.spendMood == 1)
       .toList();
   if (regretSpends.isNotEmpty) {
-    final regretOnStress = regretSpends
-        .where((l) => stressDates.contains(l.date))
-        .length;
+    final regretOnStress =
+        regretSpends.where((l) => stressDates.contains(l.date)).length;
     final ratio = (regretOnStress / regretSpends.length * 100).toInt();
     if (ratio >= 50) {
       return '이번 주 후회 소비의 $ratio%가 감정 점수가 낮은 날 일어났어요 💭\n힘든 날엔 결제 전에 한 번 더 생각해봐요.';
@@ -82,9 +77,8 @@ String? _computeWeeklyInsight(
     }
   }
   if (hardTagCounts.isNotEmpty) {
-    final topHard = hardTagCounts.entries.reduce(
-      (a, b) => a.value >= b.value ? a : b,
-    );
+    final topHard =
+        hardTagCounts.entries.reduce((a, b) => a.value >= b.value ? a : b);
     return "이번 주 나를 힘들게 한 건 '${topHard.key}'였어요 🏷️\n다음 주엔 이 부분에 여유를 만들어보세요.";
   }
 
@@ -129,10 +123,8 @@ class _StreakInfo {
 }
 
 _StreakInfo _computeStreak(List<EmotionEntry> emotions, DateTime today) {
-  final recordedDates = emotions
-      .where((e) => !e.isEmpty)
-      .map((e) => e.date)
-      .toSet();
+  final recordedDates =
+      emotions.where((e) => !e.isEmpty).map((e) => e.date).toSet();
 
   int streak = 0;
   var cursor = today;
@@ -142,9 +134,8 @@ _StreakInfo _computeStreak(List<EmotionEntry> emotions, DateTime today) {
   }
 
   final monthPrefix = '${today.year}-${today.month.toString().padLeft(2, '0')}';
-  final monthCount = recordedDates
-      .where((d) => d.startsWith(monthPrefix))
-      .length;
+  final monthCount =
+      recordedDates.where((d) => d.startsWith(monthPrefix)).length;
 
   return _StreakInfo(streak, monthCount, today.day);
 }
@@ -191,7 +182,6 @@ class HomeScreen extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         actions: [
-          // 알림 설정 버튼
           IconButton(
             icon: const Icon(Icons.notifications_none_rounded),
             onPressed: () => Navigator.push(
@@ -199,7 +189,6 @@ class HomeScreen extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const NotificationScreen()),
             ),
           ),
-          // 통계 버튼
           IconButton(
             icon: const Icon(Icons.bar_chart_rounded),
             onPressed: () => Navigator.push(
@@ -227,14 +216,25 @@ class HomeScreen extends StatelessWidget {
                       ),
                     );
                   }
-                  //날짜 그룹화 및 정렬
-                  final entries = emotionBox.values.toList()
+
+                  final today = DateTime.now();
+
+                  // 최근 7일 날짜 문자열 목록
+                  final recentDates = <String>{};
+                  for (int i = 0; i < 7; i++) {
+                    recentDates
+                        .add(_fmtDate(today.subtract(Duration(days: i))));
+                  }
+
+                  // 최근 7일 기록만 필터링 + 정렬
+                  final entries = emotionBox.values
+                      .where((e) => recentDates.contains(e.date))
+                      .toList()
                     ..sort((a, b) {
-                      // 날짜가 같으면 생성 시간(createdAt) 비교, 다르면 날짜(date) 비교
                       if (a.date == b.date) {
-                        return a.createdAt.compareTo(b.createdAt); // 시간 내림차순
+                        return a.createdAt.compareTo(b.createdAt);
                       }
-                      return a.date.compareTo(b.date); // 날짜 내림차순
+                      return a.date.compareTo(b.date);
                     });
 
                   final Map<String, List<EmotionEntry>> grouped = {};
@@ -242,7 +242,6 @@ class HomeScreen extends StatelessWidget {
                     grouped.putIfAbsent(entry.date, () => []).add(entry);
                   }
 
-                  final today = DateTime.now();
                   final weeklyInsight = _computeWeeklyInsight(
                     emotionBox.values.toList(),
                     ledgerBox.values.toList(),
@@ -269,8 +268,58 @@ class HomeScreen extends StatelessWidget {
                       Expanded(
                         child: ListView.builder(
                           padding: const EdgeInsets.all(16),
-                          itemCount: grouped.length,
+                          itemCount: grouped.length + 1,
                           itemBuilder: (context, index) {
+
+                            // 마지막 항목: 이전 기록 보기 버튼
+                            if (index == grouped.length) {
+                              return Padding(
+                                padding: const EdgeInsets.only(
+                                    top: 8, bottom: 24),
+                                child: GestureDetector(
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const MonthlyEmotionScreen(),
+                                    ),
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 14),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF8F8FC),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                          color: Colors.grey.shade200),
+                                    ),
+                                    child: const Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.history_rounded,
+                                            size: 18,
+                                            color: Color(0xFF534AB7)),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          '이전 기록 보기',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF534AB7),
+                                          ),
+                                        ),
+                                        SizedBox(width: 4),
+                                        Icon(Icons.chevron_right_rounded,
+                                            size: 18,
+                                            color: Color(0xFF534AB7)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+
                             final date = grouped.keys.elementAt(index);
                             final dayEntries = grouped[date]!;
                             final parts = date.split('-');
@@ -280,13 +329,7 @@ class HomeScreen extends StatelessWidget {
                               int.parse(parts[2]),
                             );
                             final weekdays = [
-                              '월',
-                              '화',
-                              '수',
-                              '목',
-                              '금',
-                              '토',
-                              '일',
+                              '월', '화', '수', '목', '금', '토', '일',
                             ];
                             final weekday = weekdays[dt.weekday - 1];
 
@@ -294,9 +337,8 @@ class HomeScreen extends StatelessWidget {
                                 .where((t) => t.date == date)
                                 .toList();
                             final totalTodos = todos.length;
-                            final doneTodos = todos
-                                .where((t) => t.isDone)
-                                .length;
+                            final doneTodos =
+                                todos.where((t) => t.isDone).length;
                             final todoProgress = totalTodos == 0
                                 ? -1.0
                                 : doneTodos / totalTodos;
@@ -493,9 +535,9 @@ class _SwipeCardState extends State<_SwipeCard> {
           color: const Color(0xFFEEEDFE),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Row(
+        child: const Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             Icon(Icons.check, size: 10, color: Color(0xFF534AB7)),
             SizedBox(width: 2),
             Text(
