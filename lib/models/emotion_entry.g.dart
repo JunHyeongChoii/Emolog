@@ -24,7 +24,7 @@ class EmotionEntryAdapter extends TypeAdapter<EmotionEntry> {
       ..createdAt = fields[4] as String
       ..diary = fields[5] as String
       ..isEmpty = fields[6] as bool
-      ..tags = (fields[7] as List).cast<String>();
+      ..tags = fields[7] == null ? [] : (fields[7] as List).cast<String>();
   }
 
   @override

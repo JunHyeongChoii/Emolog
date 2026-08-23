@@ -27,6 +27,6 @@ class LedgerEntry extends HiveObject {
 
   // ===== Phase 1: 소비 감정 (신규) =====
   // 0 = 미입력, 1 = 후회 😩, 2 = 그저그럼 😐, 3 = 만족 😊, 4 = 최고 🤩
-  @HiveField(7)
+  @HiveField(7, defaultValue: 0)
   int spendMood = 0;
 }

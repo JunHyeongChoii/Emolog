@@ -24,7 +24,7 @@ class LedgerEntryAdapter extends TypeAdapter<LedgerEntry> {
       ..categoryEmoji = fields[4] as String
       ..memo = fields[5] as String
       ..createdAt = fields[6] as String
-      ..spendMood = fields[7] as int;
+      ..spendMood = fields[7] == null ? 0 : fields[7] as int;
   }
 
   @override

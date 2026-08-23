@@ -24,10 +24,10 @@ class TodoEntryAdapter extends TypeAdapter<TodoEntry> {
       ..repeatType = fields[4] as String
       ..repeatDays = (fields[5] as List).cast<int>()
       ..repeatDay = fields[6] as int
-      ..isSetType = fields[7] as bool
-      ..repsPerSet = fields[8] as int
-      ..targetSets = fields[9] as int
-      ..completedSets = fields[10] as int;
+      ..isSetType = fields[7] == null ? false : fields[7] as bool
+      ..repsPerSet = fields[8] == null ? 0 : fields[8] as int
+      ..targetSets = fields[9] == null ? 0 : fields[9] as int
+      ..completedSets = fields[10] == null ? 0 : fields[10] as int;
   }
 
   @override

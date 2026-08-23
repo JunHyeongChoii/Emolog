@@ -26,6 +26,6 @@ class EmotionEntry extends HiveObject {
   bool isEmpty = false; // 빈 항목 여부
 
   // ===== Phase 1: 감정 원인 태그 (신규) =====
-  @HiveField(7)
+  @HiveField(7, defaultValue: <String>[])
   List<String> tags = []; // 감정 원인 태그 (예: ['과제·일', '돈'])
 }

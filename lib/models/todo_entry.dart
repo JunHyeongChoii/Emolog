@@ -26,15 +26,15 @@ class TodoEntry extends HiveObject {
   int repeatDay = 0; // 매월 반복 날짜
 
   // ===== 세트 기록 필드 (신규) =====
-  @HiveField(7)
+  @HiveField(7, defaultValue: false)
   bool isSetType = false; // 세트 기록 여부
 
-  @HiveField(8)
+  @HiveField(8, defaultValue: 0)
   int repsPerSet = 0; // 세트당 개수 (예: 10)
 
-  @HiveField(9)
+  @HiveField(9, defaultValue: 0)
   int targetSets = 0; // 목표 세트 수 (예: 5)
 
-  @HiveField(10)
+  @HiveField(10, defaultValue: 0)
   int completedSets = 0; // 완료한 세트 수 (예: 2)
 }
