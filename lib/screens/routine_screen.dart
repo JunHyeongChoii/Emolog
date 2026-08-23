@@ -10,7 +10,6 @@ class RoutineScreen extends StatelessWidget {
     return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
-  // 반복 뱃지 텍스트
   String _repeatLabel(TodoEntry todo) {
     if (todo.repeatType == 'weekly') {
       final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
@@ -21,7 +20,6 @@ class RoutineScreen extends StatelessWidget {
     return '오늘만';
   }
 
-  // 삭제 확인 (오늘 이후 항목 전체 삭제)
   Future<void> _confirmDelete(
       BuildContext context, TodoEntry todo) async {
     final result = await showDialog<bool>(
@@ -79,7 +77,6 @@ class RoutineScreen extends StatelessWidget {
       body: ValueListenableBuilder(
         valueListenable: Hive.box<TodoEntry>('todos').listenable(),
         builder: (context, box, _) {
-          // 반복 할일만 필터링 (오늘 이후 항목 중 고유한 제목+반복타입)
           final today = _today();
           final allTodos = box.values
               .where((t) =>
@@ -96,7 +93,6 @@ class RoutineScreen extends StatelessWidget {
             }
           }
 
-          // 매주 / 매월 분리
           final weeklyRoutines = uniqueRoutines.values
               .where((t) => t.repeatType == 'weekly')
               .toList();
@@ -109,8 +105,7 @@ class RoutineScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('🔁',
-                      style: TextStyle(fontSize: 48)),
+                  Text('🔁', style: TextStyle(fontSize: 48)),
                   SizedBox(height: 16),
                   Text(
                     '등록된 루틴이 없어요\n할 일 추가에서 매주/매월 반복을 설정해보세요!',
@@ -211,12 +206,9 @@ class _RoutineCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // 반복 아이콘
           const Icon(Icons.repeat_rounded,
               size: 18, color: Color(0xFF534AB7)),
           const SizedBox(width: 12),
-
-          // 제목
           Expanded(
             child: Text(
               todo.title,
@@ -224,10 +216,7 @@ class _RoutineCard extends StatelessWidget {
                   fontSize: 15, color: Colors.black87),
             ),
           ),
-
           const SizedBox(width: 8),
-
-          // 반복 뱃지
           Container(
             padding: const EdgeInsets.symmetric(
                 horizontal: 8, vertical: 3),
@@ -244,10 +233,7 @@ class _RoutineCard extends StatelessWidget {
               ),
             ),
           ),
-
           const SizedBox(width: 8),
-
-          // 삭제 버튼
           GestureDetector(
             onTap: onDelete,
             child: Container(
