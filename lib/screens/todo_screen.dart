@@ -588,9 +588,19 @@ class _SetCard extends StatelessWidget {
     required this.onDotTap,
   });
 
+  // 세트 -1 (실수로 누른 것 되돌리기)
+  void _removeSet() {
+    if (todo.completedSets > 0) {
+      todo.completedSets--;
+      todo.isDone = todo.completedSets >= todo.targetSets;
+      todo.save();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isComplete = todo.completedSets >= todo.targetSets;
+    final canRemove = todo.completedSets > 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -599,7 +609,9 @@ class _SetCard extends StatelessWidget {
         color: const Color(0xFFF8F8FC),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isComplete ? const Color(0xFFB7E4D0) : const Color(0xFFEEEDFE),
+          color: isComplete
+              ? const Color(0xFFB7E4D0)
+              : const Color(0xFFEEEDFE),
           width: 1.5,
         ),
       ),
@@ -618,12 +630,14 @@ class _SetCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: isComplete ? Colors.grey : Colors.black87,
+                        color:
+                            isComplete ? Colors.grey : Colors.black87,
                       ),
                     ),
                     Text(
                       '${todo.repsPerSet}개씩 ${todo.targetSets}세트',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -661,14 +675,14 @@ class _SetCard extends StatelessWidget {
                       shape: BoxShape.circle,
                       color: filled
                           ? (isComplete
-                                ? const Color(0xFF0F6E56)
-                                : const Color(0xFF534AB7))
+                              ? const Color(0xFF0F6E56)
+                              : const Color(0xFF534AB7))
                           : Colors.transparent,
                       border: Border.all(
                         color: filled
                             ? (isComplete
-                                  ? const Color(0xFF0F6E56)
-                                  : const Color(0xFF534AB7))
+                                ? const Color(0xFF0F6E56)
+                                : const Color(0xFF534AB7))
                             : const Color(0xFFAFA9EC),
                         width: 2,
                       ),
@@ -678,7 +692,8 @@ class _SetCard extends StatelessWidget {
               }),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
                   color: todo.repeatType == 'once'
                       ? const Color(0xFFE1F5EE)
@@ -701,29 +716,66 @@ class _SetCard extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // 세트 완료 버튼
-          SizedBox(
-            width: double.infinity,
-            height: 40,
-            child: ElevatedButton(
-              onPressed: isComplete ? null : onAddSet,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF534AB7),
-                disabledBackgroundColor: const Color(0xFFE1F5EE),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+          // − 버튼 + 세트 완료 버튼
+          Row(
+            children: [
+              // − 버튼 (되돌리기)
+              SizedBox(
+                width: 46,
+                height: 40,
+                child: ElevatedButton(
+                  onPressed: canRemove ? _removeSet : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEEEDFE),
+                    disabledBackgroundColor: Colors.grey.shade100,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 0,
+                    padding: EdgeInsets.zero,
+                  ),
+                  child: Icon(
+                    Icons.remove_rounded,
+                    size: 20,
+                    color: canRemove
+                        ? const Color(0xFF534AB7)
+                        : Colors.grey.shade400,
+                  ),
                 ),
-                elevation: 0,
               ),
-              child: Text(
-                isComplete ? '오늘 완료! 🎉' : '＋ 1세트 완료 (${todo.repsPerSet}개)',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: isComplete ? const Color(0xFF085041) : Colors.white,
+
+              const SizedBox(width: 8),
+
+              // ＋ 세트 완료 버튼
+              Expanded(
+                child: SizedBox(
+                  height: 40,
+                  child: ElevatedButton(
+                    onPressed: isComplete ? null : onAddSet,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF534AB7),
+                      disabledBackgroundColor: const Color(0xFFE1F5EE),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      isComplete
+                          ? '오늘 완료! 🎉'
+                          : '＋ 1세트 완료 (${todo.repsPerSet}개)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isComplete
+                            ? const Color(0xFF085041)
+                            : Colors.white,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ],
       ),
